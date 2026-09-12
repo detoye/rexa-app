@@ -7,7 +7,12 @@ import 'features/admin/presentation/platform_admin_app.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await SupabaseConfig.initialize();
+
+  try {
+    await SupabaseConfig.initialize();
+  } catch (e) {
+    debugPrint('Supabase init failed: $e');
+  }
 
   if (kIsWeb) {
     runApp(
