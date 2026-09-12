@@ -420,10 +420,10 @@ alter table invitation_codes enable row level security;
 
 -- Platform Admin policies
 create policy "Platform admins can view all" on platform_admins for select
-  using (id = auth.uid());
+  using (exists (select 1 from platform_admins where id = auth.uid()));
 
 create policy "Platform admins can insert" on platform_admins for insert
-  with check (true);
+  with check (exists (select 1 from platform_admins where id = auth.uid()));
 
 -- Estate policies
 create policy "Members can view estate" on estates for select using (
@@ -439,9 +439,7 @@ create policy "Platform admins can insert estates" on estates for insert
 
 -- Member policies
 create policy "Members can view members" on members for select using (
-  user_id = auth.uid() or estate_id in (
-    select m2.estate_id from members m2 where m2.user_id = auth.uid()
-  )
+  estate_id in (select estate_id from members where user_id = auth.uid())
 );
 
 create policy "Members can insert member" on members for insert with check (
