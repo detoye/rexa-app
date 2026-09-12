@@ -1,0 +1,22 @@
+# Flutter/Dart
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Environment
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+*.log
+*.pyc
