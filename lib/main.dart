@@ -8,6 +8,8 @@ import 'reza_app.dart';
 import 'features/admin/presentation/platform_admin_app.dart';
 import 'features/auth/presentation/login_screen.dart';
 import 'features/auth/presentation/register_screen.dart';
+import 'features/onboarding/presentation/role_selection_screen.dart';
+import 'features/onboarding/presentation/create_estate_screen.dart';
 import 'features/onboarding/presentation/join_estate_screen.dart';
 import 'features/dashboard/presentation/dashboard_screen.dart';
 import 'features/members/presentation/members_screen.dart';
@@ -75,16 +77,24 @@ class _WebEntryState extends State<WebEntry> {
     }
 
     try {
-      final adminCheck = await SupabaseConfig.client
-          .from('platform_admins')
-          .select('id')
-          .eq('id', user.id)
-          .maybeSingle();
+      final results = await Future.wait([
+        SupabaseConfig.client
+            .from('platform_admins')
+            .select('id')
+            .eq('id', user.id)
+            .maybeSingle(),
+        SupabaseConfig.client
+            .from('members')
+            .select('id')
+            .eq('user_id', user.id)
+            .limit(1)
+            .maybeSingle(),
+      ]);
 
       if (mounted) {
         setState(() {
           _isLoggedIn = true;
-          _isPlatformAdmin = adminCheck != null;
+          _isPlatformAdmin = results[0] != null;
           _isLoading = false;
         });
       }
@@ -130,8 +140,59 @@ class _WebEntryState extends State<WebEntry> {
   }
 }
 
+Future<String?> _webAuthRedirect(BuildContext context, GoRouterState state) async {
+  final session = SupabaseConfig.auth.currentSession;
+  final location = state.matchedLocation;
+
+  final publicRoutes = ['/login', '/register', '/', '/role-selection', '/create-estate', '/join'];
+  final isPublic = publicRoutes.contains(location);
+
+  if (session == null) {
+    return isPublic ? null : '/login';
+  }
+
+  if (isPublic && location != '/role-selection' && location != '/create-estate' && location != '/join') {
+    return '/role-selection';
+  }
+
+  try {
+    final user = SupabaseConfig.auth.currentUser;
+    if (user == null) return isPublic ? null : '/login';
+
+    final results = await Future.wait([
+      SupabaseConfig.client
+          .from('platform_admins')
+          .select('id')
+          .eq('id', user.id)
+          .maybeSingle(),
+      SupabaseConfig.client
+          .from('members')
+          .select('id')
+          .eq('user_id', user.id)
+          .limit(1)
+          .maybeSingle(),
+    ]);
+
+    final isAdmin = results[0] != null;
+    final hasMember = results[1] != null;
+
+    if (!isAdmin && !hasMember && !['/role-selection', '/create-estate', '/join'].contains(location)) {
+      return '/role-selection';
+    }
+
+    if (isAdmin && !hasMember && location != '/create-estate') {
+      return '/create-estate';
+    }
+
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
 final _webRouter = GoRouter(
   initialLocation: '/',
+  redirect: _webAuthRedirect,
   routes: [
     GoRoute(
       path: '/',
@@ -139,6 +200,8 @@ final _webRouter = GoRouter(
     ),
     GoRoute(path: '/login', builder: (_, _) => const LoginScreen()),
     GoRoute(path: '/register', builder: (_, _) => const RegisterScreen()),
+    GoRoute(path: '/role-selection', builder: (_, _) => const RoleSelectionScreen()),
+    GoRoute(path: '/create-estate', builder: (_, _) => const CreateEstateScreen()),
     GoRoute(path: '/join', builder: (_, _) => const JoinEstateScreen()),
     GoRoute(path: '/dashboard', builder: (_, _) => const DashboardScreen()),
     GoRoute(path: '/members', builder: (_, _) => const MembersScreen()),

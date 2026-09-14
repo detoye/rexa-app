@@ -38,7 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (response.session != null && mounted) {
-        context.go('/dashboard');
+        context.go('/role-selection');
       }
     } on Exception catch (e) {
       if (mounted) {

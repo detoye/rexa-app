@@ -78,6 +78,28 @@ class _ManageInvitationsScreenState extends State<ManageInvitationsScreen> {
                     ],
                     onChanged: (v) => setDialogState(() => selectedRole = v ?? 'tenant'),
                   ),
+                  if (selectedRole == 'admin') ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: RezaColors.errorRed.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.warning_amber, color: RezaColors.errorRed, size: 16),
+                          SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'Admin codes grant full platform access',
+                              style: TextStyle(color: RezaColors.errorRed, fontSize: 12),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   DropdownButtonFormField<int>(
                     initialValue: expiryDays,

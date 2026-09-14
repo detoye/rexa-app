@@ -54,7 +54,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       if (mounted) {
         if (response.session != null) {
-          context.go('/dashboard');
+          context.go('/role-selection');
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'config/supabase_client.dart';
 import 'config/theme.dart';
 import 'features/auth/presentation/login_screen.dart';
 import 'features/auth/presentation/register_screen.dart';
 import 'features/onboarding/presentation/splash_screen.dart';
+import 'features/onboarding/presentation/role_selection_screen.dart';
+import 'features/onboarding/presentation/create_estate_screen.dart';
 import 'features/onboarding/presentation/join_estate_screen.dart';
 import 'features/dashboard/presentation/dashboard_screen.dart';
 import 'features/members/presentation/members_screen.dart';
@@ -21,9 +24,59 @@ import 'features/admin/presentation/manage_invitations_screen.dart';
 import 'features/subscription/presentation/subscription_screen.dart';
 import 'features/profile/presentation/profile_screen.dart';
 
+Future<String?> _authRedirect(BuildContext context, GoRouterState state) async {
+  final session = SupabaseConfig.auth.currentSession;
+  final location = state.matchedLocation;
+
+  final publicRoutes = ['/login', '/register', '/', '/role-selection', '/create-estate', '/join'];
+  final isPublic = publicRoutes.contains(location);
+
+  if (session == null) {
+    return isPublic ? null : '/login';
+  }
+
+  if (isPublic && location != '/role-selection' && location != '/create-estate' && location != '/join') {
+    return '/role-selection';
+  }
+
+  try {
+    final user = SupabaseConfig.auth.currentUser;
+    if (user == null) return isPublic ? null : '/login';
+
+    final adminCheck = await SupabaseConfig.client
+        .from('platform_admins')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle();
+
+    final memberCheck = await SupabaseConfig.client
+        .from('members')
+        .select('id')
+        .eq('user_id', user.id)
+        .limit(1)
+        .maybeSingle();
+
+    final isAdmin = adminCheck != null;
+    final hasMember = memberCheck != null;
+
+    if (!isAdmin && !hasMember && !['/role-selection', '/create-estate', '/join'].contains(location)) {
+      return '/role-selection';
+    }
+
+    if (isAdmin && !hasMember && location != '/create-estate') {
+      return '/create-estate';
+    }
+
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/',
+    redirect: _authRedirect,
     routes: [
       GoRoute(
         path: '/',
@@ -36,6 +89,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: '/role-selection',
+        builder: (context, state) => const RoleSelectionScreen(),
+      ),
+      GoRoute(
+        path: '/create-estate',
+        builder: (context, state) => const CreateEstateScreen(),
       ),
       GoRoute(
         path: '/join',

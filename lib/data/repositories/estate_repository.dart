@@ -56,6 +56,41 @@ class EstateRepository {
     return Estate.fromJson(data);
   }
 
+  Future<Estate> createEstateWithAdmin({
+    required String name,
+    required String address,
+    String? description,
+  }) async {
+    final user = _client.auth.currentUser!;
+
+    final estateData = await _client
+        .from('estates')
+        .insert({
+          'name': name,
+          'address': address,
+          'description': description,
+          'created_by': user.id,
+        })
+        .select()
+        .single();
+
+    final estate = Estate.fromJson(estateData);
+
+    await _client.from('platform_admins').insert({
+      'id': user.id,
+      'role': 'admin',
+    });
+
+    await _client.from('members').insert({
+      'user_id': user.id,
+      'estate_id': estate.id,
+      'role': 'admin',
+      'is_verified': true,
+    });
+
+    return estate;
+  }
+
   Stream<List<Estate>> watchEstates() {
     return _client.from('estates').stream(primaryKey: ['id']).map(
         (data) => data.map((e) => Estate.fromJson(e)).toList());

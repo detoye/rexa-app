@@ -15,6 +15,11 @@ class _JoinEstateScreenState extends State<JoinEstateScreen> {
   final _invitationRepo = InvitationRepository();
   final _codeController = TextEditingController();
   bool _isLoading = false;
+  bool _isPreviewing = false;
+
+  String? _previewedRole;
+  String? _previewedEstateName;
+  String? _previewError;
 
   @override
   void dispose() {
@@ -22,7 +27,7 @@ class _JoinEstateScreenState extends State<JoinEstateScreen> {
     super.dispose();
   }
 
-  Future<void> _joinEstate() async {
+  Future<void> _previewCode() async {
     final code = _codeController.text.trim().toUpperCase();
     if (code.length != 6) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -30,6 +35,34 @@ class _JoinEstateScreenState extends State<JoinEstateScreen> {
       );
       return;
     }
+
+    setState(() {
+      _isPreviewing = true;
+      _previewError = null;
+      _previewedRole = null;
+    });
+
+    try {
+      final result = await _invitationRepo.previewCode(code);
+      if (mounted) {
+        setState(() {
+          _previewedRole = result['role'];
+          _previewedEstateName = result['estate_name'];
+          _isPreviewing = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _previewError = e.toString().replaceFirst('Exception: ', '');
+          _isPreviewing = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _joinEstate() async {
+    final code = _codeController.text.trim().toUpperCase();
 
     setState(() => _isLoading = true);
     try {
@@ -51,9 +84,18 @@ class _JoinEstateScreenState extends State<JoinEstateScreen> {
     }
   }
 
+  void _resetPreview() {
+    setState(() {
+      _previewedRole = null;
+      _previewedEstateName = null;
+      _previewError = null;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final isWide = ResponsiveLayout.isDesktop(context);
+    final isAdminInvite = _previewedRole == 'admin';
 
     return Scaffold(
       backgroundColor: RezaColors.backgroundDark,
@@ -105,11 +147,14 @@ class _JoinEstateScreenState extends State<JoinEstateScreen> {
                   ),
                 ),
                 const SizedBox(height: 40),
+
+                // Code input
                 TextField(
                   controller: _codeController,
                   textAlign: TextAlign.center,
                   textCapitalization: TextCapitalization.characters,
                   maxLength: 6,
+                  enabled: _previewedRole == null,
                   style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -135,24 +180,147 @@ class _JoinEstateScreenState extends State<JoinEstateScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 32),
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _joinEstate,
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              color: RezaColors.primaryNavy,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : const Text('Join Estate', style: TextStyle(fontSize: 16)),
+                const SizedBox(height: 24),
+
+                // Preview error
+                if (_previewError != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: RezaColors.errorRed.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: RezaColors.errorRed.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline, color: RezaColors.errorRed, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(_previewError!, style: const TextStyle(color: RezaColors.errorRed)),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 16),
+                ],
+
+                // Preview result — role confirmation
+                if (_previewedRole != null) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isAdminInvite
+                          ? RezaColors.errorRed.withValues(alpha: 0.1)
+                          : RezaColors.successGreen.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isAdminInvite
+                            ? RezaColors.errorRed.withValues(alpha: 0.3)
+                            : RezaColors.successGreen.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          isAdminInvite ? Icons.admin_panel_settings_outlined : Icons.person_outline,
+                          color: isAdminInvite ? RezaColors.errorRed : RezaColors.successGreen,
+                          size: 36,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          isAdminInvite ? 'Admin Invitation' : 'Member Invitation',
+                          style: TextStyle(
+                            color: isAdminInvite ? RezaColors.errorRed : RezaColors.successGreen,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Estate: $_previewedEstateName',
+                          style: const TextStyle(color: RezaColors.textWhite, fontSize: 14),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Role: ${_previewedRole!.toUpperCase()}',
+                          style: const TextStyle(color: RezaColors.textGray, fontSize: 13),
+                        ),
+                        if (isAdminInvite) ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: RezaColors.errorRed.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.warning_amber, color: RezaColors.errorRed, size: 16),
+                                SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    'This code grants full platform admin access. Only use if you were invited by an existing admin.',
+                                    style: TextStyle(color: RezaColors.errorRed, fontSize: 12),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+
+                // Buttons
+                if (_previewedRole == null)
+                  // Step 1: Look up code
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: _isPreviewing ? null : _previewCode,
+                      child: _isPreviewing
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(color: RezaColors.primaryNavy, strokeWidth: 2),
+                            )
+                          : const Text('Look Up Code', style: TextStyle(fontSize: 16)),
+                    ),
+                  )
+                else ...[
+                  // Step 2: Confirm join
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _joinEstate,
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(color: RezaColors.primaryNavy, strokeWidth: 2),
+                            )
+                          : Text(
+                              isAdminInvite ? 'Accept Admin Invite' : 'Join Estate',
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: OutlinedButton(
+                      onPressed: _resetPreview,
+                      child: const Text('Use Different Code', style: TextStyle(fontSize: 16)),
+                    ),
+                  ),
+                ],
+
                 const SizedBox(height: 24),
                 Center(
                   child: TextButton(

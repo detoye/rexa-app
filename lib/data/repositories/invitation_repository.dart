@@ -24,8 +24,8 @@ class InvitationRepository {
       throw Exception('Only admins can generate invitation codes');
     }
 
-    // Generate a 6-character alphanumeric code
-    final code = _generateCode();
+    // Admin codes get A- prefix, regular codes are plain 6-char
+    final code = role == 'admin' ? 'A-${_generateCode()}' : _generateCode();
     final expiresAt = DateTime.now().add(Duration(days: expiryDays));
 
     await _client.from('invitation_codes').insert({
@@ -39,16 +39,48 @@ class InvitationRepository {
     return code;
   }
 
+  /// Preview an invitation code without joining — returns the role and estate name
+  Future<Map<String, dynamic>> previewCode(String code) async {
+    final normalizedCode = code.trim().toUpperCase();
+
+    final invitation = await _client
+        .from('invitation_codes')
+        .select('role, estate_id, estates(name)')
+        .eq('code', normalizedCode)
+        .eq('is_used', false)
+        .maybeSingle();
+
+    if (invitation == null) {
+      throw Exception('Invalid or already used invitation code');
+    }
+
+    if (invitation['expires_at'] != null) {
+      final expiresAt = DateTime.parse(invitation['expires_at']);
+      if (DateTime.now().isAfter(expiresAt)) {
+        throw Exception('This invitation code has expired');
+      }
+    }
+
+    final estates = invitation['estates'];
+    return {
+      'role': invitation['role'] as String,
+      'estate_name': estates != null ? (estates as Map<String, dynamic>)['name'] as String : 'Unknown Estate',
+      'estate_id': invitation['estate_id'] as String,
+    };
+  }
+
   /// Join an estate using an invitation code
   Future<String> joinWithCode(String code) async {
     final user = SupabaseConfig.auth.currentUser;
     if (user == null) throw Exception('Not authenticated');
 
+    final normalizedCode = code.trim().toUpperCase();
+
     // Find the invitation code
     final invitation = await _client
         .from('invitation_codes')
         .select()
-        .eq('code', code)
+        .eq('code', normalizedCode)
         .eq('is_used', false)
         .maybeSingle();
 
@@ -66,6 +98,20 @@ class InvitationRepository {
 
     final estateId = invitation['estate_id'] as String;
     final role = invitation['role'] as String;
+
+    // Validate code format matches role
+    final isAdminCode = normalizedCode.startsWith('A-');
+    if (isAdminCode && role != 'admin') {
+      throw Exception('Admin code format but code is not an admin invite');
+    }
+    if (!isAdminCode && role == 'admin') {
+      throw Exception('Admin codes must start with A- prefix');
+    }
+
+    const allowedRoles = ['tenant', 'landlord', 'admin'];
+    if (!allowedRoles.contains(role)) {
+      throw Exception('Invalid invitation code type');
+    }
 
     // Check if user is already a member of this estate
     final existing = await _client
@@ -86,6 +132,14 @@ class InvitationRepository {
       'role': role,
       'is_verified': true,
     });
+
+    // If admin invitation, also grant platform admin access
+    if (role == 'admin') {
+      await _client.from('platform_admins').upsert({
+        'id': user.id,
+        'role': 'admin',
+      });
+    }
 
     // Mark invitation as used
     final memberId = await _client

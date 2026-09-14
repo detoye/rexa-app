@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../config/theme.dart';
 import '../../../core/models/models.dart';
 import '../../../data/repositories/subscription_repository.dart';
@@ -72,16 +73,31 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               onRefresh: _loadSubscriptionData,
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildCurrentPlanCard(),
-                    const SizedBox(height: 24),
-                    Text('Available Plans', style: Theme.of(context).headlineMedium),
-                    const SizedBox(height: 12),
-                    ..._plans.map((plan) => _buildPlanCard(plan)),
-                  ],
-                ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildCurrentPlanCard(),
+                      const SizedBox(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Available Plans', style: Theme.of(context).headlineMedium),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      ..._plans.map((plan) => _buildPlanCard(plan)),
+                      const SizedBox(height: 24),
+                      Center(
+                        child: TextButton(
+                          onPressed: () => context.go('/dashboard'),
+                          child: const Text(
+                            'Maybe Later',
+                            style: TextStyle(color: RezaColors.textGray, fontSize: 14),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
               ),
             ),
     );

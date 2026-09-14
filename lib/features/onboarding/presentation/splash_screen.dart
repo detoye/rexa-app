@@ -23,10 +23,48 @@ class _SplashScreenState extends State<SplashScreen> {
 
     final session = SupabaseConfig.auth.currentSession;
 
-    if (session != null) {
-      context.go('/dashboard');
-    } else {
+    if (session == null) {
       context.go('/login');
+      return;
+    }
+
+    try {
+      final user = SupabaseConfig.auth.currentUser;
+      if (user == null) {
+        context.go('/login');
+        return;
+      }
+
+      final results = await Future.wait([
+        SupabaseConfig.client
+            .from('platform_admins')
+            .select('id')
+            .eq('id', user.id)
+            .maybeSingle(),
+        SupabaseConfig.client
+            .from('members')
+            .select('id')
+            .eq('user_id', user.id)
+            .limit(1)
+            .maybeSingle(),
+      ]);
+
+      if (!mounted) return;
+
+      final isAdmin = results[0] != null;
+      final hasMember = results[1] != null;
+
+      if (!isAdmin && !hasMember) {
+        context.go('/role-selection');
+      } else if (isAdmin && !hasMember) {
+        context.go('/create-estate');
+      } else {
+        context.go('/dashboard');
+      }
+    } catch (e) {
+      if (mounted) {
+        context.go('/dashboard');
+      }
     }
   }
 
