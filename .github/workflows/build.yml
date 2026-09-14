@@ -22,6 +22,7 @@ jobs:
       - name: Build Web
         run: |
           flutter build web \
+            --base-href /rexa-app/ \
             --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
             --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
 
