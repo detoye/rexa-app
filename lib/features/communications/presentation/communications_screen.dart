@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../config/theme.dart';
 import '../../../core/models/models.dart';
+import '../../../core/utils/role_helper.dart';
 import '../../../data/repositories/announcement_repository.dart';
 
 class CommunicationsScreen extends StatefulWidget {
@@ -15,6 +16,7 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
   List<Announcement> _announcements = [];
   bool _isLoading = true;
   String? _estateId;
+  bool _isAdmin = false;
 
   @override
   void initState() {
@@ -25,6 +27,7 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
   Future<void> _loadAnnouncements() async {
     setState(() => _isLoading = true);
     try {
+      _isAdmin = await RoleHelper.isAdmin();
       _estateId = await _announcementRepo.getCurrentEstateId();
       if (_estateId != null) {
         final announcements = await _announcementRepo.getAnnouncements(_estateId!);
@@ -53,10 +56,11 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
         backgroundColor: RezaColors.backgroundDark,
         title: const Text('Communications'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.campaign_outlined),
-            onPressed: () => _showCreateAnnouncementSheet(context),
-          ),
+          if (_isAdmin)
+            IconButton(
+              icon: const Icon(Icons.campaign_outlined),
+              onPressed: () => _showCreateAnnouncementSheet(context),
+            ),
         ],
       ),
       body: _isLoading

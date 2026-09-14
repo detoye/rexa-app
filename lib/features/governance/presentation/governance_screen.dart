@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../config/theme.dart';
 import '../../../core/models/models.dart';
+import '../../../core/utils/role_helper.dart';
 import '../../../data/repositories/governance_repository.dart';
 
 class GovernanceScreen extends StatefulWidget {
@@ -18,6 +19,7 @@ class _GovernanceScreenState extends State<GovernanceScreen> {
   Map<String, int> _committeeMemberCounts = {};
   bool _isLoading = true;
   String? _estateId;
+  bool _isAdmin = false;
 
   @override
   void initState() {
@@ -28,6 +30,7 @@ class _GovernanceScreenState extends State<GovernanceScreen> {
   Future<void> _loadGovernanceData() async {
     setState(() => _isLoading = true);
     try {
+      _isAdmin = await RoleHelper.canManageGovernance();
       _estateId = await _governanceRepo.getCurrentEstateId();
       if (_estateId != null) {
         final results = await Future.wait([
@@ -82,14 +85,14 @@ class _GovernanceScreenState extends State<GovernanceScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _sectionHeader('Committees', '+ Add', () => _showAddCommitteeSheet(context)),
+                    _sectionHeader('Committees', '+ Add', _isAdmin ? () => _showAddCommitteeSheet(context) : null),
                     const SizedBox(height: 12),
                     if (_committees.isEmpty)
                       _buildEmptyState('No committees yet')
                     else
                       ..._committees.map((c) => _buildCommitteeCard(c)),
                     const SizedBox(height: 24),
-                    _sectionHeader('Meeting Minutes', '+ New', () => _showAddMeetingSheet(context)),
+                    _sectionHeader('Meeting Minutes', '+ New', _isAdmin ? () => _showAddMeetingSheet(context) : null),
                     const SizedBox(height: 12),
                     if (_meetings.isEmpty)
                       _buildEmptyState('No meetings recorded')

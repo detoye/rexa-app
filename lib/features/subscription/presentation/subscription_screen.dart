@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../config/theme.dart';
 import '../../../core/models/models.dart';
+import '../../../core/utils/role_helper.dart';
 import '../../../data/repositories/subscription_repository.dart';
 
 class SubscriptionScreen extends StatefulWidget {
@@ -18,6 +19,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   SubscriptionPlan? _currentPlan;
   bool _isLoading = true;
   String? _estateId;
+  bool _isAdmin = false;
 
   @override
   void initState() {
@@ -28,6 +30,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   Future<void> _loadSubscriptionData() async {
     setState(() => _isLoading = true);
     try {
+      _isAdmin = await RoleHelper.isAdmin();
       _estateId = await _subRepo.getCurrentEstateId();
       if (_estateId != null) {
         final results = await Future.wait([
@@ -250,7 +253,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     ))
                 .toList(),
           ),
-          if (!isCurrentPlan) ...[
+          if (!isCurrentPlan && _isAdmin) ...[
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,

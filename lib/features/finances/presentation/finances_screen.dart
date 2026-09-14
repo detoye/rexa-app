@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../config/theme.dart';
+import '../../../core/utils/role_helper.dart';
 import '../../../core/widgets/stat_card.dart';
 import '../../../data/repositories/payment_repository.dart';
 import '../../../data/repositories/member_repository.dart';
@@ -22,6 +23,7 @@ class _FinancesScreenState extends State<FinancesScreen> {
   List<Map<String, dynamic>> _recentPayments = [];
   bool _isLoading = true;
   String? _estateId;
+  bool _isAdmin = false;
 
   @override
   void initState() {
@@ -32,6 +34,7 @@ class _FinancesScreenState extends State<FinancesScreen> {
   Future<void> _loadFinances() async {
     setState(() => _isLoading = true);
     try {
+      _isAdmin = await RoleHelper.canManageFinances();
       _estateId = await _memberRepo.getCurrentEstateId();
       if (_estateId != null) {
         final stats = await _paymentRepo.getCollectionStats(_estateId!);
@@ -82,10 +85,11 @@ class _FinancesScreenState extends State<FinancesScreen> {
         backgroundColor: RezaColors.backgroundDark,
         title: const Text('Finances'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.receipt_long),
-            onPressed: () => _showAddDueDialog(context),
-          ),
+          if (_isAdmin)
+            IconButton(
+              icon: const Icon(Icons.receipt_long),
+              onPressed: () => _showAddDueDialog(context),
+            ),
         ],
       ),
       body: _isLoading
@@ -143,10 +147,11 @@ class _FinancesScreenState extends State<FinancesScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('Due Types', style: Theme.of(context).headlineMedium),
-                        TextButton(
-                          onPressed: () => _showAddDueDialog(context),
-                          child: const Text('+ Add Due'),
-                        ),
+                        if (_isAdmin)
+                          TextButton(
+                            onPressed: () => _showAddDueDialog(context),
+                            child: const Text('+ Add Due'),
+                          ),
                       ],
                     ),
                     const SizedBox(height: 12),

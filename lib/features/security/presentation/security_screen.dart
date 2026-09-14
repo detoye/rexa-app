@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../config/theme.dart';
 import '../../../core/models/models.dart';
+import '../../../core/utils/role_helper.dart';
 import '../../../data/repositories/security_repository.dart';
 
 class SecurityScreen extends StatefulWidget {
@@ -16,6 +17,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
   List<GuestManifest> _guests = [];
   bool _isLoading = true;
   String? _estateId;
+  bool _canManage = false;
 
   @override
   void initState() {
@@ -26,6 +28,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
   Future<void> _loadSecurityData() async {
     setState(() => _isLoading = true);
     try {
+      _canManage = await RoleHelper.canManageSecurity();
       _estateId = await _securityRepo.getCurrentEstateId();
       if (_estateId != null) {
         final results = await Future.wait([
@@ -67,10 +70,11 @@ class _SecurityScreenState extends State<SecurityScreen> {
         backgroundColor: RezaColors.backgroundDark,
         title: const Text('Security'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.warning_amber_outlined),
-            onPressed: () => _showAlertDialog(context),
-          ),
+          if (_canManage)
+            IconButton(
+              icon: const Icon(Icons.warning_amber_outlined),
+              onPressed: () => _showAlertDialog(context),
+            ),
         ],
       ),
       body: _isLoading
@@ -126,10 +130,11 @@ class _SecurityScreenState extends State<SecurityScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('Guest Manifest', style: Theme.of(context).headlineMedium),
-                        IconButton(
-                          icon: const Icon(Icons.person_add_outlined, color: RezaColors.accentGold),
-                          onPressed: () => _showCheckInSheet(context),
-                        ),
+                        if (_canManage)
+                          IconButton(
+                            icon: const Icon(Icons.person_add_outlined, color: RezaColors.accentGold),
+                            onPressed: () => _showCheckInSheet(context),
+                          ),
                       ],
                     ),
                     const SizedBox(height: 12),

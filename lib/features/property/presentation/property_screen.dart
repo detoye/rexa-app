@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../config/theme.dart';
 import '../../../core/models/models.dart';
+import '../../../core/utils/role_helper.dart';
 import '../../../data/repositories/property_repository.dart';
 
 class PropertyScreen extends StatefulWidget {
@@ -16,6 +17,7 @@ class _PropertyScreenState extends State<PropertyScreen> {
   List<PropertyDeal> _deals = [];
   bool _isLoading = true;
   String? _estateId;
+  bool _isAdmin = false;
 
   @override
   void initState() {
@@ -26,6 +28,7 @@ class _PropertyScreenState extends State<PropertyScreen> {
   Future<void> _loadProperties() async {
     setState(() => _isLoading = true);
     try {
+      _isAdmin = await RoleHelper.isAdmin();
       _estateId = await _propertyRepo.getCurrentEstateId();
       if (_estateId != null) {
         final results = await Future.wait([
@@ -65,10 +68,11 @@ class _PropertyScreenState extends State<PropertyScreen> {
         backgroundColor: RezaColors.backgroundDark,
         title: const Text('Property'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add_home_outlined),
-            onPressed: () => _showAddPropertySheet(context),
-          ),
+          if (_isAdmin)
+            IconButton(
+              icon: const Icon(Icons.add_home_outlined),
+              onPressed: () => _showAddPropertySheet(context),
+            ),
         ],
       ),
       body: _isLoading
@@ -84,7 +88,8 @@ class _PropertyScreenState extends State<PropertyScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('Listings', style: Theme.of(context).headlineMedium),
-                        TextButton(onPressed: () => _showAddPropertySheet(context), child: const Text('+ New Listing')),
+                        if (_isAdmin)
+                          TextButton(onPressed: () => _showAddPropertySheet(context), child: const Text('+ New Listing')),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -97,7 +102,8 @@ class _PropertyScreenState extends State<PropertyScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('Quick Deals', style: Theme.of(context).headlineMedium),
-                        TextButton(onPressed: () => _showAddDealSheet(context), child: const Text('+ Add Deal')),
+                        if (_isAdmin)
+                          TextButton(onPressed: () => _showAddDealSheet(context), child: const Text('+ Add Deal')),
                       ],
                     ),
                     const SizedBox(height: 12),

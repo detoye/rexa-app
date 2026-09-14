@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../../config/supabase_client.dart';
 import '../../../config/theme.dart';
 import '../../../core/utils/responsive.dart';
+import '../../../core/utils/role_helper.dart';
 import '../../../core/widgets/quick_action_card.dart';
 import '../../../data/repositories/member_repository.dart';
 import '../../../data/repositories/payment_repository.dart';
@@ -27,6 +28,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _isLoading = true;
   String? _estateId;
   String _userName = 'User';
+  bool _isAdmin = false;
 
   @override
   void initState() {
@@ -44,6 +46,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _userName = (metadata['full_name'] as String).split(' ').first;
         }
       }
+
+      _isAdmin = await RoleHelper.isAdmin();
 
       _estateId = await _memberRepo.getCurrentEstateId();
       if (_estateId != null) {
@@ -200,11 +204,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               label: 'Profile',
                               onTap: () => context.go('/profile'),
                             ),
-                            QuickActionCard(
-                              icon: Icons.more_horiz,
-                              label: 'More',
-                              onTap: () {},
-                            ),
+                            if (_isAdmin)
+                              QuickActionCard(
+                                icon: Icons.mail_outline,
+                                label: 'Invite',
+                                onTap: () => context.go('/manage-invitations'),
+                              ),
                           ],
                         ),
                         const SizedBox(height: 24),

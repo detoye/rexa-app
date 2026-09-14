@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../config/supabase_client.dart';
 import '../../../config/theme.dart';
+import '../../../core/utils/role_helper.dart';
 import '../../../data/repositories/invitation_repository.dart';
 
 class ManageInvitationsScreen extends StatefulWidget {
@@ -16,6 +17,7 @@ class _ManageInvitationsScreenState extends State<ManageInvitationsScreen> {
   List<Map<String, dynamic>> _codes = [];
   bool _isLoading = true;
   String? _estateId;
+  bool _isAdmin = false;
 
   @override
   void initState() {
@@ -26,6 +28,12 @@ class _ManageInvitationsScreenState extends State<ManageInvitationsScreen> {
   Future<void> _loadCodes() async {
     setState(() => _isLoading = true);
     try {
+      _isAdmin = await RoleHelper.isAdmin();
+      if (!_isAdmin) {
+        setState(() => _isLoading = false);
+        return;
+      }
+
       final user = SupabaseConfig.auth.currentUser;
       if (user == null) return;
 
@@ -195,6 +203,28 @@ class _ManageInvitationsScreenState extends State<ManageInvitationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_isAdmin && !_isLoading) {
+      return Scaffold(
+        backgroundColor: RezaColors.backgroundDark,
+        appBar: AppBar(
+          backgroundColor: RezaColors.backgroundDark,
+          title: const Text('Invitation Codes'),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.lock_outline, size: 64, color: RezaColors.textGray.withValues(alpha: 0.3)),
+              const SizedBox(height: 16),
+              const Text('Access Denied', style: TextStyle(color: RezaColors.textWhite, fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              const Text('Only admins can manage invitation codes', style: TextStyle(color: RezaColors.textGray)),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: RezaColors.backgroundDark,
       appBar: AppBar(
