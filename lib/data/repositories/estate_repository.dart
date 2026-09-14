@@ -63,6 +63,13 @@ class EstateRepository {
   }) async {
     final user = _client.auth.currentUser!;
 
+    // 1. Grant platform admin access first (required for estates INSERT policy)
+    await _client.from('platform_admins').insert({
+      'id': user.id,
+      'role': 'admin',
+    });
+
+    // 2. Create the estate
     final estateData = await _client
         .from('estates')
         .insert({
@@ -76,11 +83,7 @@ class EstateRepository {
 
     final estate = Estate.fromJson(estateData);
 
-    await _client.from('platform_admins').insert({
-      'id': user.id,
-      'role': 'admin',
-    });
-
+    // 3. Create member record linking user to estate
     await _client.from('members').insert({
       'user_id': user.id,
       'estate_id': estate.id,
