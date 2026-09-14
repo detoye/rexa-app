@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../config/supabase_client.dart';
 import '../../../config/theme.dart';
+import '../../../core/utils/responsive.dart';
 import '../../../core/widgets/quick_action_card.dart';
 import '../../../data/repositories/member_repository.dart';
 import '../../../data/repositories/payment_repository.dart';
@@ -77,6 +78,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final columns = ResponsiveLayout.gridColumns(context);
+    final isWide = ResponsiveLayout.isDesktop(context);
+
     return Scaffold(
       backgroundColor: RezaColors.backgroundDark,
       body: SafeArea(
@@ -84,152 +88,194 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ? const Center(child: CircularProgressIndicator(color: RezaColors.accentGold))
             : RefreshIndicator(
                 onRefresh: _loadDashboardData,
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _getGreeting(),
-                                style: Theme.of(context).bodyMedium,
-                              ),
-                              Text(
-                                _userName,
-                                style: Theme.of(context).headlineMedium,
-                              ),
-                            ],
-                          ),
-                          CircleAvatar(
-                            radius: 24,
-                            backgroundColor: RezaColors.accentGold,
-                            child: Text(
-                              _userName.isNotEmpty ? _userName[0].toUpperCase() : 'U',
-                              style: const TextStyle(
-                                color: RezaColors.primaryNavy,
-                                fontWeight: FontWeight.bold,
+                child: ResponsiveLayout.centerContent(
+                  context,
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isWide ? 32 : 16,
+                      vertical: 16,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _getGreeting(),
+                                  style: Theme.of(context).bodyMedium,
+                                ),
+                                Text(
+                                  _userName,
+                                  style: Theme.of(context).headlineMedium,
+                                ),
+                              ],
+                            ),
+                            CircleAvatar(
+                              radius: 24,
+                              backgroundColor: RezaColors.accentGold,
+                              child: Text(
+                                _userName.isNotEmpty ? _userName[0].toUpperCase() : 'U',
+                                style: const TextStyle(
+                                  color: RezaColors.primaryNavy,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      _buildStatsCard(),
-                      const SizedBox(height: 24),
-                      Text('Quick Actions', style: Theme.of(context).headlineMedium),
-                      const SizedBox(height: 16),
-                      GridView.count(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisCount: 4,
-                        mainAxisSpacing: 12,
-                        crossAxisSpacing: 12,
-                        children: [
-                          QuickActionCard(
-                            icon: Icons.people_outline,
-                            label: 'Members',
-                            onTap: () => context.go('/members'),
-                          ),
-                          QuickActionCard(
-                            icon: Icons.account_balance_wallet_outlined,
-                            label: 'Finances',
-                            onTap: () => context.go('/finances'),
-                          ),
-                          QuickActionCard(
-                            icon: Icons.gavel_outlined,
-                            label: 'Governance',
-                            onTap: () => context.go('/governance'),
-                          ),
-                          QuickActionCard(
-                            icon: Icons.home_outlined,
-                            label: 'Property',
-                            onTap: () => context.go('/property'),
-                          ),
-                          QuickActionCard(
-                            icon: Icons.security_outlined,
-                            label: 'Security',
-                            onTap: () => context.go('/security'),
-                          ),
-                          QuickActionCard(
-                            icon: Icons.campaign_outlined,
-                            label: 'Announce',
-                            onTap: () => context.go('/communications'),
-                          ),
-                          QuickActionCard(
-                            icon: Icons.forum_outlined,
-                            label: 'Community',
-                            onTap: () => context.go('/community'),
-                          ),
-                          QuickActionCard(
-                            icon: Icons.business_outlined,
-                            label: 'Business',
-                            onTap: () => context.go('/business'),
-                          ),
-                          QuickActionCard(
-                            icon: Icons.account_balance_wallet_outlined,
-                            label: 'Wallet',
-                            onTap: () => context.go('/wallet'),
-                          ),
-                          QuickActionCard(
-                            icon: Icons.workspace_premium_outlined,
-                            label: 'Plan',
-                            onTap: () => context.go('/subscription'),
-                          ),
-                          QuickActionCard(
-                            icon: Icons.vpn_key_outlined,
-                            label: 'Join',
-                            onTap: () => context.go('/join'),
-                          ),
-                          QuickActionCard(
-                            icon: Icons.person_outline,
-                            label: 'Profile',
-                            onTap: () => context.go('/profile'),
-                          ),
-                          QuickActionCard(
-                            icon: Icons.more_horiz,
-                            label: 'More',
-                            onTap: () {},
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('Overview', style: Theme.of(context).headlineMedium),
-                          Text(
-                            '$_announcementCount announcements',
-                            style: const TextStyle(color: RezaColors.textGray, fontSize: 13),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      _buildOverviewCard(
-                        Icons.people,
-                        'Total Members',
-                        '$_memberCount',
-                        RezaColors.accentGold,
-                      ),
-                      const SizedBox(height: 12),
-                      _buildOverviewCard(
-                        Icons.trending_up,
-                        'Total Collected',
-                        '₦${_formatAmount(_totalCollected)}',
-                        RezaColors.successGreen,
-                      ),
-                      const SizedBox(height: 12),
-                      _buildOverviewCard(
-                        Icons.trending_down,
-                        'Outstanding',
-                        '₦${_formatAmount(_outstanding)}',
-                        RezaColors.errorRed,
-                      ),
-                    ],
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        _buildStatsCard(),
+                        const SizedBox(height: 24),
+                        Text('Quick Actions', style: Theme.of(context).headlineMedium),
+                        const SizedBox(height: 16),
+                        GridView.count(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          crossAxisCount: columns,
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                          childAspectRatio: 1.0,
+                          children: [
+                            QuickActionCard(
+                              icon: Icons.people_outline,
+                              label: 'Members',
+                              onTap: () => context.go('/members'),
+                            ),
+                            QuickActionCard(
+                              icon: Icons.account_balance_wallet_outlined,
+                              label: 'Finances',
+                              onTap: () => context.go('/finances'),
+                            ),
+                            QuickActionCard(
+                              icon: Icons.gavel_outlined,
+                              label: 'Governance',
+                              onTap: () => context.go('/governance'),
+                            ),
+                            QuickActionCard(
+                              icon: Icons.home_outlined,
+                              label: 'Property',
+                              onTap: () => context.go('/property'),
+                            ),
+                            QuickActionCard(
+                              icon: Icons.security_outlined,
+                              label: 'Security',
+                              onTap: () => context.go('/security'),
+                            ),
+                            QuickActionCard(
+                              icon: Icons.campaign_outlined,
+                              label: 'Announce',
+                              onTap: () => context.go('/communications'),
+                            ),
+                            QuickActionCard(
+                              icon: Icons.forum_outlined,
+                              label: 'Community',
+                              onTap: () => context.go('/community'),
+                            ),
+                            QuickActionCard(
+                              icon: Icons.business_outlined,
+                              label: 'Business',
+                              onTap: () => context.go('/business'),
+                            ),
+                            QuickActionCard(
+                              icon: Icons.account_balance_wallet_outlined,
+                              label: 'Wallet',
+                              onTap: () => context.go('/wallet'),
+                            ),
+                            QuickActionCard(
+                              icon: Icons.workspace_premium_outlined,
+                              label: 'Plan',
+                              onTap: () => context.go('/subscription'),
+                            ),
+                            QuickActionCard(
+                              icon: Icons.vpn_key_outlined,
+                              label: 'Join',
+                              onTap: () => context.go('/join'),
+                            ),
+                            QuickActionCard(
+                              icon: Icons.person_outline,
+                              label: 'Profile',
+                              onTap: () => context.go('/profile'),
+                            ),
+                            QuickActionCard(
+                              icon: Icons.more_horiz,
+                              label: 'More',
+                              onTap: () {},
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Overview', style: Theme.of(context).headlineMedium),
+                            Text(
+                              '$_announcementCount announcements',
+                              style: const TextStyle(color: RezaColors.textGray, fontSize: 13),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        isWide
+                            ? Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildOverviewCard(
+                                      Icons.people,
+                                      'Total Members',
+                                      '$_memberCount',
+                                      RezaColors.accentGold,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: _buildOverviewCard(
+                                      Icons.trending_up,
+                                      'Total Collected',
+                                      '₦${_formatAmount(_totalCollected)}',
+                                      RezaColors.successGreen,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: _buildOverviewCard(
+                                      Icons.trending_down,
+                                      'Outstanding',
+                                      '₦${_formatAmount(_outstanding)}',
+                                      RezaColors.errorRed,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Column(
+                                children: [
+                                  _buildOverviewCard(
+                                    Icons.people,
+                                    'Total Members',
+                                    '$_memberCount',
+                                    RezaColors.accentGold,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _buildOverviewCard(
+                                    Icons.trending_up,
+                                    'Total Collected',
+                                    '₦${_formatAmount(_totalCollected)}',
+                                    RezaColors.successGreen,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _buildOverviewCard(
+                                    Icons.trending_down,
+                                    'Outstanding',
+                                    '₦${_formatAmount(_outstanding)}',
+                                    RezaColors.errorRed,
+                                  ),
+                                ],
+                              ),
+                      ],
+                    ),
                   ),
                 ),
               ),

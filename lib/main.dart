@@ -1,9 +1,28 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'config/supabase_client.dart';
+import 'config/theme.dart';
 import 'reza_app.dart';
 import 'features/admin/presentation/platform_admin_app.dart';
+import 'features/auth/presentation/login_screen.dart';
+import 'features/auth/presentation/register_screen.dart';
+import 'features/onboarding/presentation/join_estate_screen.dart';
+import 'features/dashboard/presentation/dashboard_screen.dart';
+import 'features/members/presentation/members_screen.dart';
+import 'features/finances/presentation/finances_screen.dart';
+import 'features/governance/presentation/governance_screen.dart';
+import 'features/property/presentation/property_screen.dart';
+import 'features/security/presentation/security_screen.dart';
+import 'features/communications/presentation/communications_screen.dart';
+import 'features/community/presentation/community_feed_screen.dart';
+import 'features/business/presentation/business_ads_screen.dart';
+import 'features/wallet/presentation/wallet_screen.dart';
+import 'features/subscription/presentation/subscription_screen.dart';
+import 'features/notifications/presentation/notifications_screen.dart';
+import 'features/profile/presentation/profile_screen.dart';
+import 'features/admin/presentation/manage_invitations_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,14 +34,141 @@ void main() async {
   }
 
   if (kIsWeb) {
-    runApp(
-      const PlatformAdminApp(),
-    );
+    runApp(const WebEntry());
   } else {
     runApp(
-      const ProviderScope(
-        child: RezaApp(),
+      const ProviderScope(child: RezaApp()),
+    );
+  }
+}
+
+class WebEntry extends StatefulWidget {
+  const WebEntry({super.key});
+
+  @override
+  State<WebEntry> createState() => _WebEntryState();
+}
+
+class _WebEntryState extends State<WebEntry> {
+  bool _isLoading = true;
+  bool _isPlatformAdmin = false;
+  bool _isLoggedIn = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkRole();
+    SupabaseConfig.auth.onAuthStateChange.listen((_) => _checkRole());
+  }
+
+  Future<void> _checkRole() async {
+    final user = SupabaseConfig.auth.currentUser;
+    if (user == null) {
+      if (mounted) {
+        setState(() {
+          _isLoggedIn = false;
+          _isPlatformAdmin = false;
+          _isLoading = false;
+        });
+      }
+      return;
+    }
+
+    try {
+      final adminCheck = await SupabaseConfig.client
+          .from('platform_admins')
+          .select('id')
+          .eq('id', user.id)
+          .maybeSingle();
+
+      if (mounted) {
+        setState(() {
+          _isLoggedIn = true;
+          _isPlatformAdmin = adminCheck != null;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoggedIn = true;
+          _isPlatformAdmin = false;
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: RezaColors.primaryNavy,
+          body: const Center(
+            child: CircularProgressIndicator(color: RezaColors.accentGold),
+          ),
+        ),
+      );
+    }
+
+    if (_isLoggedIn && _isPlatformAdmin) {
+      return const PlatformAdminApp();
+    }
+
+    return ProviderScope(
+      child: MaterialApp.router(
+        title: 'ResidentZ',
+        debugShowCheckedModeBanner: false,
+        theme: RezaTheme.lightTheme,
+        darkTheme: RezaTheme.darkTheme,
+        themeMode: ThemeMode.dark,
+        routerConfig: _webRouter,
       ),
+    );
+  }
+}
+
+final _webRouter = GoRouter(
+  initialLocation: '/',
+  routes: [
+    GoRoute(
+      path: '/',
+      builder: (context, state) => const _InitialRedirect(),
+    ),
+    GoRoute(path: '/login', builder: (_, _) => const LoginScreen()),
+    GoRoute(path: '/register', builder: (_, _) => const RegisterScreen()),
+    GoRoute(path: '/join', builder: (_, _) => const JoinEstateScreen()),
+    GoRoute(path: '/dashboard', builder: (_, _) => const DashboardScreen()),
+    GoRoute(path: '/members', builder: (_, _) => const MembersScreen()),
+    GoRoute(path: '/finances', builder: (_, _) => const FinancesScreen()),
+    GoRoute(path: '/governance', builder: (_, _) => const GovernanceScreen()),
+    GoRoute(path: '/property', builder: (_, _) => const PropertyScreen()),
+    GoRoute(path: '/security', builder: (_, _) => const SecurityScreen()),
+    GoRoute(path: '/communications', builder: (_, _) => const CommunicationsScreen()),
+    GoRoute(path: '/community', builder: (_, _) => const CommunityFeedScreen()),
+    GoRoute(path: '/business', builder: (_, _) => const BusinessAdsScreen()),
+    GoRoute(path: '/wallet', builder: (_, _) => const WalletScreen()),
+    GoRoute(path: '/subscription', builder: (_, _) => const SubscriptionScreen()),
+    GoRoute(path: '/notifications', builder: (_, _) => const NotificationsScreen()),
+    GoRoute(path: '/profile', builder: (_, _) => const ProfileScreen()),
+    GoRoute(path: '/manage-invitations', builder: (_, _) => const ManageInvitationsScreen()),
+  ],
+);
+
+class _InitialRedirect extends StatelessWidget {
+  const _InitialRedirect();
+  @override
+  Widget build(BuildContext context) {
+    final session = SupabaseConfig.auth.currentSession;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (context.mounted) {
+        context.go(session != null ? '/dashboard' : '/login');
+      }
+    });
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator(color: RezaColors.accentGold)),
     );
   }
 }
