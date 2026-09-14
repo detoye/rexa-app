@@ -6,49 +6,47 @@ class EstatesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Estates',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1B2A4A),
-                      ),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Estates',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1B2A4A),
                     ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Manage all registered estates on the platform',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF6B7280),
-                      ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Manage all registered estates on the platform',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF6B7280),
                     ),
-                  ],
-                ),
-                ElevatedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Add Estate'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            _buildSearchBar(),
-            const SizedBox(height: 24),
-            _buildEstatesTable(),
-          ],
-        ),
+                  ),
+                ],
+              ),
+              ElevatedButton.icon(
+                onPressed: () {},
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Add Estate'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          _buildSearchBar(),
+          const SizedBox(height: 24),
+          _buildEstatesTable(),
+        ],
       ),
     );
   }

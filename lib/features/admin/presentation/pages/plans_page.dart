@@ -101,45 +101,43 @@ class _PlansPageState extends State<PlansPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Subscription Plans',
-                            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF1B2A4A)),
-                          ),
-                          SizedBox(height: 4),
-                          Text(
-                            'Configure pricing, limits, and features for each plan',
-                            style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
-                          ),
-                        ],
-                      ),
-                      if (_isSaving)
-                        const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+    return _isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : SingleChildScrollView(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Subscription Plans',
+                          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF1B2A4A)),
                         ),
-                    ],
-                  ),
-                  const SizedBox(height: 32),
-                  ..._plans.map((plan) => _buildPlanCard(plan)),
-                ],
-              ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Configure pricing, limits, and features for each plan',
+                          style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+                        ),
+                      ],
+                    ),
+                    if (_isSaving)
+                      const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 32),
+                ..._plans.map((plan) => _buildPlanCard(plan)),
+              ],
             ),
-    );
+          );
   }
 
   Widget _buildPlanCard(Map<String, dynamic> plan) {

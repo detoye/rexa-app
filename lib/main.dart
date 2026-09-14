@@ -54,6 +54,7 @@ class WebEntry extends StatefulWidget {
 class _WebEntryState extends State<WebEntry> {
   bool _isLoading = true;
   bool _isPlatformAdmin = false;
+  bool _hasMember = false;
   bool _isLoggedIn = false;
 
   @override
@@ -70,6 +71,7 @@ class _WebEntryState extends State<WebEntry> {
         setState(() {
           _isLoggedIn = false;
           _isPlatformAdmin = false;
+          _hasMember = false;
           _isLoading = false;
         });
       }
@@ -95,6 +97,7 @@ class _WebEntryState extends State<WebEntry> {
         setState(() {
           _isLoggedIn = true;
           _isPlatformAdmin = results[0] != null;
+          _hasMember = results[1] != null;
           _isLoading = false;
         });
       }
@@ -103,6 +106,7 @@ class _WebEntryState extends State<WebEntry> {
         setState(() {
           _isLoggedIn = true;
           _isPlatformAdmin = false;
+          _hasMember = false;
           _isLoading = false;
         });
       }
@@ -123,7 +127,8 @@ class _WebEntryState extends State<WebEntry> {
       );
     }
 
-    if (_isLoggedIn && _isPlatformAdmin) {
+    // Only show PlatformAdminApp for pure platform admins (no estate membership)
+    if (_isLoggedIn && _isPlatformAdmin && !_hasMember) {
       return const PlatformAdminApp();
     }
 

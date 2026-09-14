@@ -6,52 +6,50 @@ class AdminSettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Settings',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1B2A4A),
-              ),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Settings',
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1B2A4A),
             ),
-            const SizedBox(height: 4),
-            const Text(
-              'Platform-wide configuration',
-              style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
-            ),
-            const SizedBox(height: 32),
-            _buildSection('Platform', [
-              _buildSettingRow('Platform Name', 'REXA', 'ResidentZ — Land Association Management'),
-              _buildSettingRow('Support Email', 'support@rexa.app', 'Contact email for platform support'),
-              _buildSettingRow('Default Currency', 'NGN', 'Nigerian Naira'),
-            ]),
-            const SizedBox(height: 24),
-            _buildSection('Payment', [
-              _buildSettingRow('Payment Provider', 'Paystack', 'Integrated payment processing'),
-              _buildSettingRow('Platform Fee', '1.5%', 'Percentage per transaction'),
-              _buildSettingRow('Settlement Schedule', 'Daily', 'Automatic settlement to estate accounts'),
-            ]),
-            const SizedBox(height: 24),
-            _buildSection('Notifications', [
-              _buildToggleRow('Push Notifications', 'Enable push notifications for all users', true),
-              _buildToggleRow('Email Notifications', 'Send email notifications for important events', true),
-              _buildToggleRow('SMS Notifications', 'Send SMS for security alerts', false),
-            ]),
-            const SizedBox(height: 24),
-            _buildSection('Feature Flags (Global)', [
-              _buildToggleRow('Community Feed', 'Allow posts, comments, and likes', true),
-              _buildToggleRow('Property Listings', 'Allow property listing features', true),
-              _buildToggleRow('Business Ads', 'Allow member classified ads', true),
-              _buildToggleRow('IoT Integration', 'Smart gate and CCTV support', false),
-            ]),
-          ],
-        ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Platform-wide configuration',
+            style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+          ),
+          const SizedBox(height: 32),
+          _buildSection('Platform', [
+            _buildSettingRow('Platform Name', 'REXA', 'ResidentZ — Land Association Management'),
+            _buildSettingRow('Support Email', 'support@rexa.app', 'Contact email for platform support'),
+            _buildSettingRow('Default Currency', 'NGN', 'Nigerian Naira'),
+          ]),
+          const SizedBox(height: 24),
+          _buildSection('Payment', [
+            _buildSettingRow('Payment Provider', 'Paystack', 'Integrated payment processing'),
+            _buildSettingRow('Platform Fee', '1.5%', 'Percentage per transaction'),
+            _buildSettingRow('Settlement Schedule', 'Daily', 'Automatic settlement to estate accounts'),
+          ]),
+          const SizedBox(height: 24),
+          _buildSection('Notifications', [
+            _buildToggleRow('Push Notifications', 'Enable push notifications for all users', true),
+            _buildToggleRow('Email Notifications', 'Send email notifications for important events', true),
+            _buildToggleRow('SMS Notifications', 'Send SMS for security alerts', false),
+          ]),
+          const SizedBox(height: 24),
+          _buildSection('Feature Flags (Global)', [
+            _buildToggleRow('Community Feed', 'Allow posts, comments, and likes', true),
+            _buildToggleRow('Property Listings', 'Allow property listing features', true),
+            _buildToggleRow('Business Ads', 'Allow member classified ads', true),
+            _buildToggleRow('IoT Integration', 'Smart gate and CCTV support', false),
+          ]),
+        ],
       ),
     );
   }

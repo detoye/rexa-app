@@ -6,31 +6,29 @@ class RevenuePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Revenue',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1B2A4A),
-              ),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Revenue',
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1B2A4A),
             ),
-            const SizedBox(height: 4),
-            const Text(
-              'Platform revenue breakdown',
-              style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
-            ),
-            const SizedBox(height: 32),
-            _buildRevenueCards(),
-            const SizedBox(height: 32),
-            _buildRevenueTable(),
-          ],
-        ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Platform revenue breakdown',
+            style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+          ),
+          const SizedBox(height: 32),
+          _buildRevenueCards(),
+          const SizedBox(height: 32),
+          _buildRevenueTable(),
+        ],
       ),
     );
   }
