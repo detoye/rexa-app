@@ -3,6 +3,7 @@ import '../../../config/theme.dart';
 import '../../../core/models/models.dart';
 import '../../../core/utils/role_helper.dart';
 import '../../../data/repositories/security_repository.dart';
+import '../../../data/repositories/visitor_code_repository.dart';
 
 class SecurityScreen extends StatefulWidget {
   const SecurityScreen({super.key});
@@ -13,8 +14,10 @@ class SecurityScreen extends StatefulWidget {
 
 class _SecurityScreenState extends State<SecurityScreen> {
   final _securityRepo = SecurityRepository();
+  final _visitorCodeRepo = VisitorCodeRepository();
   List<SecurityAlert> _alerts = [];
   List<GuestManifest> _guests = [];
+  List<Map<String, dynamic>> _visitorCodes = [];
   bool _isLoading = true;
   String? _estateId;
   bool _canManage = false;
@@ -34,10 +37,12 @@ class _SecurityScreenState extends State<SecurityScreen> {
         final results = await Future.wait([
           _securityRepo.getActiveAlerts(_estateId!),
           _securityRepo.getGuestManifest(_estateId!),
+          _visitorCodeRepo.getActiveVisitorCodes(_estateId!),
         ]);
         setState(() {
           _alerts = results[0] as List<SecurityAlert>;
           _guests = results[1] as List<GuestManifest>;
+          _visitorCodes = results[2] as List<Map<String, dynamic>>;
           _isLoading = false;
         });
       } else {
@@ -142,6 +147,23 @@ class _SecurityScreenState extends State<SecurityScreen> {
                       _buildEmptyState('No guests today')
                     else
                       ..._guests.map((guest) => _buildGuestCard(guest)),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Visitor Codes', style: Theme.of(context).headlineMedium),
+                        if (_canManage)
+                          IconButton(
+                            icon: const Icon(Icons.add_circle_outline, color: RezaColors.accentGold),
+                            onPressed: () => _showCreateVisitorCodeSheet(context),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    if (_visitorCodes.isEmpty)
+                      _buildEmptyState('No active visitor codes')
+                    else
+                      ..._visitorCodes.map((code) => _buildVisitorCodeCard(code)),
                   ],
                 ),
               ),
@@ -274,6 +296,66 @@ class _SecurityScreenState extends State<SecurityScreen> {
                   isCheckedIn ? 'Checked In' : 'Checked Out',
                   style: TextStyle(color: isCheckedIn ? RezaColors.successGreen : RezaColors.textGray, fontSize: 12),
                 ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVisitorCodeCard(Map<String, dynamic> code) {
+    final expiresAt = DateTime.parse(code['expires_at']);
+    final isExpired = DateTime.now().isAfter(expiresAt);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: RezaColors.cardDark,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: isExpired ? RezaColors.textGray.withValues(alpha: 0.1) : RezaColors.successGreen.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              Icons.vpn_key,
+              color: isExpired ? RezaColors.textGray : RezaColors.successGreen,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(code['visitor_name'] ?? 'Unknown', style: const TextStyle(color: RezaColors.textWhite, fontWeight: FontWeight.w600)),
+                Text(code['purpose'] ?? 'No purpose', style: Theme.of(context).bodyMedium),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: RezaColors.accentGold.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  code['code'],
+                  style: const TextStyle(color: RezaColors.accentGold, fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 2),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                isExpired ? 'Expired' : 'Expires ${_formatTime(expiresAt)}',
+                style: TextStyle(color: isExpired ? RezaColors.textGray : RezaColors.textGray, fontSize: 11),
               ),
             ],
           ),
@@ -418,6 +500,95 @@ class _SecurityScreenState extends State<SecurityScreen> {
                     }
                   },
                   child: const Text('Check In'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showCreateVisitorCodeSheet(BuildContext context) {
+    final nameController = TextEditingController();
+    final phoneController = TextEditingController();
+    final purposeController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: RezaColors.cardDark,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(left: 24, right: 24, top: 24, bottom: MediaQuery.of(context).viewInsets.bottom + 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Create Visitor Code', style: TextStyle(color: RezaColors.textWhite, fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Text('Generate a code for your guest to enter the estate', style: Theme.of(context).bodyMedium),
+              const SizedBox(height: 20),
+              TextField(controller: nameController, decoration: const InputDecoration(hintText: 'Visitor Name', prefixIcon: Icon(Icons.person_outlined))),
+              const SizedBox(height: 12),
+              TextField(controller: phoneController, keyboardType: TextInputType.phone, decoration: const InputDecoration(hintText: 'Phone (optional)', prefixIcon: Icon(Icons.phone_outlined))),
+              const SizedBox(height: 12),
+              TextField(controller: purposeController, decoration: const InputDecoration(hintText: 'Purpose (optional)', prefixIcon: Icon(Icons.info_outline))),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (_estateId == null || nameController.text.isEmpty) return;
+                    final navigator = Navigator.of(context);
+                    final messenger = ScaffoldMessenger.of(context);
+                    try {
+                      final result = await _visitorCodeRepo.createVisitorCode(
+                        estateId: _estateId!,
+                        visitorName: nameController.text,
+                        visitorPhone: phoneController.text.isNotEmpty ? phoneController.text : null,
+                        purpose: purposeController.text.isNotEmpty ? purposeController.text : null,
+                      );
+                      navigator.pop();
+                      _loadSecurityData();
+                      if (context.mounted) {
+                        showDialog(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            backgroundColor: RezaColors.cardDark,
+                            title: const Text('Visitor Code Created'),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text('Share this code with your visitor:'),
+                                const SizedBox(height: 16),
+                                Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: RezaColors.primaryNavy,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    result['code'],
+                                    style: const TextStyle(color: RezaColors.accentGold, fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: 4),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text('Valid for 24 hours', style: Theme.of(context).bodyMedium),
+                              ],
+                            ),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
+                            ],
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
+                    }
+                  },
+                  child: const Text('Generate Code'),
                 ),
               ),
             ],

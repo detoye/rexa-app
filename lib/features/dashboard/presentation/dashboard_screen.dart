@@ -29,6 +29,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String? _estateId;
   String _userName = 'User';
   bool _isAdmin = false;
+  bool _hasEstate = false;
 
   @override
   void initState() {
@@ -50,6 +51,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _isAdmin = await RoleHelper.isAdmin();
 
       _estateId = await _memberRepo.getCurrentEstateId();
+      _hasEstate = _estateId != null;
       if (_estateId != null) {
         final results = await Future.wait([
           _memberRepo.getMemberCount(_estateId!),
@@ -144,6 +146,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           crossAxisSpacing: 12,
                           childAspectRatio: 1.0,
                           children: [
+                            // === EVERYONE SEES ===
                             QuickActionCard(
                               icon: Icons.people_outline,
                               label: 'Members',
@@ -153,26 +156,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               icon: Icons.account_balance_wallet_outlined,
                               label: 'Finances',
                               onTap: () => context.go('/finances'),
-                            ),
-                            QuickActionCard(
-                              icon: Icons.gavel_outlined,
-                              label: 'Governance',
-                              onTap: () => context.go('/governance'),
-                            ),
-                            QuickActionCard(
-                              icon: Icons.home_outlined,
-                              label: 'Property',
-                              onTap: () => context.go('/property'),
-                            ),
-                            QuickActionCard(
-                              icon: Icons.security_outlined,
-                              label: 'Security',
-                              onTap: () => context.go('/security'),
-                            ),
-                            QuickActionCard(
-                              icon: Icons.campaign_outlined,
-                              label: 'Announce',
-                              onTap: () => context.go('/communications'),
                             ),
                             QuickActionCard(
                               icon: Icons.forum_outlined,
@@ -190,95 +173,123 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               onTap: () => context.go('/wallet'),
                             ),
                             QuickActionCard(
-                              icon: Icons.workspace_premium_outlined,
-                              label: 'Plan',
-                              onTap: () => context.go('/subscription'),
-                            ),
-                            QuickActionCard(
-                              icon: Icons.vpn_key_outlined,
-                              label: 'Join',
-                              onTap: () => context.go('/join'),
+                              icon: Icons.security_outlined,
+                              label: 'Security',
+                              onTap: () => context.go('/security'),
                             ),
                             QuickActionCard(
                               icon: Icons.person_outline,
                               label: 'Profile',
                               onTap: () => context.go('/profile'),
                             ),
-                            if (_isAdmin)
+
+                            // === ADMIN ONLY ===
+                            if (_isAdmin) ...[
+                              QuickActionCard(
+                                icon: Icons.gavel_outlined,
+                                label: 'Governance',
+                                onTap: () => context.go('/governance'),
+                              ),
+                              QuickActionCard(
+                                icon: Icons.home_outlined,
+                                label: 'Property',
+                                onTap: () => context.go('/property'),
+                              ),
+                              QuickActionCard(
+                                icon: Icons.campaign_outlined,
+                                label: 'Announce',
+                                onTap: () => context.go('/communications'),
+                              ),
+                              QuickActionCard(
+                                icon: Icons.workspace_premium_outlined,
+                                label: 'Plan',
+                                onTap: () => context.go('/subscription'),
+                              ),
                               QuickActionCard(
                                 icon: Icons.mail_outline,
                                 label: 'Invite',
                                 onTap: () => context.go('/manage-invitations'),
                               ),
+                            ],
+
+                            // === JOIN (only if not yet a member) ===
+                            if (!_hasEstate)
+                              QuickActionCard(
+                                icon: Icons.vpn_key_outlined,
+                                label: 'Join',
+                                onTap: () => context.go('/join'),
+                              ),
                           ],
                         ),
-                        const SizedBox(height: 24),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Overview', style: Theme.of(context).headlineMedium),
-                            Text(
-                              '$_announcementCount announcements',
-                              style: const TextStyle(color: RezaColors.textGray, fontSize: 13),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        isWide
-                            ? Row(
-                                children: [
-                                  Expanded(
-                                    child: _buildOverviewCard(
+                        if (_isAdmin) ...[
+                          const SizedBox(height: 24),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('Overview', style: Theme.of(context).headlineMedium),
+                              Text(
+                                '$_announcementCount announcements',
+                                style: const TextStyle(color: RezaColors.textGray, fontSize: 13),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          isWide
+                              ? Row(
+                                  children: [
+                                    Expanded(
+                                      child: _buildOverviewCard(
+                                        Icons.people,
+                                        'Total Members',
+                                        '$_memberCount',
+                                        RezaColors.accentGold,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: _buildOverviewCard(
+                                        Icons.trending_up,
+                                        'Total Collected',
+                                        '₦${_formatAmount(_totalCollected)}',
+                                        RezaColors.successGreen,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: _buildOverviewCard(
+                                        Icons.trending_down,
+                                        'Outstanding',
+                                        '₦${_formatAmount(_outstanding)}',
+                                        RezaColors.errorRed,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : Column(
+                                  children: [
+                                    _buildOverviewCard(
                                       Icons.people,
                                       'Total Members',
                                       '$_memberCount',
                                       RezaColors.accentGold,
                                     ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: _buildOverviewCard(
+                                    const SizedBox(height: 12),
+                                    _buildOverviewCard(
                                       Icons.trending_up,
                                       'Total Collected',
                                       '₦${_formatAmount(_totalCollected)}',
                                       RezaColors.successGreen,
                                     ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: _buildOverviewCard(
+                                    const SizedBox(height: 12),
+                                    _buildOverviewCard(
                                       Icons.trending_down,
                                       'Outstanding',
                                       '₦${_formatAmount(_outstanding)}',
                                       RezaColors.errorRed,
                                     ),
-                                  ),
-                                ],
-                              )
-                            : Column(
-                                children: [
-                                  _buildOverviewCard(
-                                    Icons.people,
-                                    'Total Members',
-                                    '$_memberCount',
-                                    RezaColors.accentGold,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  _buildOverviewCard(
-                                    Icons.trending_up,
-                                    'Total Collected',
-                                    '₦${_formatAmount(_totalCollected)}',
-                                    RezaColors.successGreen,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  _buildOverviewCard(
-                                    Icons.trending_down,
-                                    'Outstanding',
-                                    '₦${_formatAmount(_outstanding)}',
-                                    RezaColors.errorRed,
-                                  ),
-                                ],
-                              ),
+                                  ],
+                                ),
+                        ],
                       ],
                     ),
                   ),
