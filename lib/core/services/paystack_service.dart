@@ -1,32 +1,62 @@
+import 'dart:convert';
 import 'dart:math';
+import 'package:http/http.dart' as http;
 
 class PaystackService {
+  // TODO: Set your Paystack secret key here or load from environment
+  static const String _secretKey = 'sk_live-placeholder';
+  static const String _baseUrl = 'https://api.paystack.co';
+
+  static Map<String, String> get _headers => {
+        'Authorization': 'Bearer $_secretKey',
+        'Content-Type': 'application/json',
+      };
+
   /// Initialize a Paystack transaction
-  /// Returns a reference that should be used to verify the transaction
-  static String initializeTransaction({
+  /// Returns a reference and access_code for the frontend
+  static Future<Map<String, dynamic>> initializeTransaction({
     required String email,
     required double amount,
     String? reference,
-  }) {
+  }) async {
     final ref = reference ?? _generateReference();
-    // In production, this would call Paystack's API:
-    // POST https://api.paystack.co/transaction/initialize
-    // {
-    //   "email": email,
-    //   "amount": amount * 100, // Paystack uses kobo
-    //   "reference": ref,
-    //   "callback_url": "your-callback-url"
-    // }
-    return ref;
+    final response = await http.post(
+      Uri.parse('$_baseUrl/transaction/initialize'),
+      headers: _headers,
+      body: jsonEncode({
+        'email': email,
+        'amount': (amount * 100).toInt(), // Paystack uses kobo
+        'reference': ref,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data['status'] == true) {
+        return {
+          'reference': ref,
+          'access_code': data['data']['access_code'],
+        };
+      }
+    }
+    throw Exception('Failed to initialize Paystack transaction: ${response.body}');
   }
 
   /// Verify a Paystack transaction
   /// Returns true if the transaction was successful
   static Future<bool> verifyTransaction(String reference) async {
-    // In production, this would call:
-    // GET https://api.paystack.co/transaction/verify/{reference}
-    // and check if status == 'success'
-    return true;
+    final response = await http.get(
+      Uri.parse('$_baseUrl/transaction/verify/$reference'),
+      headers: _headers,
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data['status'] == true) {
+        return data['data']['status'] == 'success';
+      }
+    }
+    return false;
   }
 
   /// Calculate platform fee (1.5%)

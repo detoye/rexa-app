@@ -85,11 +85,14 @@ class _FinancesScreenState extends State<FinancesScreen> {
         backgroundColor: RezaColors.backgroundDark,
         title: const Text('Finances'),
         actions: [
-          if (_isAdmin)
-            IconButton(
-              icon: const Icon(Icons.receipt_long),
-              onPressed: () => _showAddDueDialog(context),
-            ),
+          IconButton(
+            icon: const Icon(Icons.receipt_long),
+            onPressed: _isAdmin
+                ? () => _showAddDueDialog(context)
+                : () => ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Admin access required')),
+                    ),
+          ),
         ],
       ),
       body: _isLoading
@@ -168,7 +171,7 @@ class _FinancesScreenState extends State<FinancesScreen> {
                       )
                     else
                       ..._dues.map((due) => _buildDueItem(
-                            due['title'] ?? 'Unnamed',
+                            due['name'] ?? 'Unnamed',
                             _formatAmount((due['amount'] as num).toDouble()),
                             due['is_active'] == true,
                           )),
@@ -302,6 +305,10 @@ class _FinancesScreenState extends State<FinancesScreen> {
   }
 
   void _showAddDueDialog(BuildContext context) {
+    final nameController = TextEditingController();
+    final amountController = TextEditingController();
+    final descController = TextEditingController();
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -311,23 +318,54 @@ class _FinancesScreenState extends State<FinancesScreen> {
       ),
       builder: (context) {
         return Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.only(left: 24, right: 24, top: 24, bottom: MediaQuery.of(context).viewInsets.bottom + 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Create New Due', style: Theme.of(context).headlineMedium),
+              const Text('Create New Due', style: TextStyle(color: RezaColors.textWhite, fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 24),
-              const TextField(decoration: InputDecoration(hintText: 'Due Name', prefixIcon: Icon(Icons.receipt_long))),
+              TextField(controller: nameController, decoration: const InputDecoration(hintText: 'Due Name', prefixIcon: Icon(Icons.receipt_long))),
               const SizedBox(height: 16),
-              const TextField(
+              TextField(
+                controller: amountController,
                 keyboardType: TextInputType.number,
-                decoration: InputDecoration(hintText: 'Amount (₦)', prefixIcon: Icon(Icons.money)),
+                decoration: const InputDecoration(hintText: 'Amount (₦)', prefixIcon: Icon(Icons.money)),
               ),
+              const SizedBox(height: 16),
+              TextField(controller: descController, decoration: const InputDecoration(hintText: 'Description (optional)', prefixIcon: Icon(Icons.description))),
               const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Create Due'),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (_estateId == null) return;
+                    final name = nameController.text.trim();
+                    final amount = double.tryParse(amountController.text.trim()) ?? 0;
+                    if (name.isEmpty || amount <= 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please enter a name and valid amount')),
+                      );
+                      return;
+                    }
+                    final navigator = Navigator.of(context);
+                    final messenger = ScaffoldMessenger.of(context);
+                    try {
+                      await _paymentRepo.createDue(
+                        estateId: _estateId!,
+                        name: name,
+                        amount: amount,
+                        description: descController.text.trim().isEmpty ? null : descController.text.trim(),
+                      );
+                      navigator.pop();
+                      _loadFinances();
+                      messenger.showSnackBar(const SnackBar(content: Text('Due created')));
+                    } catch (e) {
+                      messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
+                    }
+                  },
+                  child: const Text('Create Due'),
+                ),
               ),
             ],
           ),

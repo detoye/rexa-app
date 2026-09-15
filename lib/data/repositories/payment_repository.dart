@@ -116,6 +116,23 @@ class PaymentRepository {
     return data;
   }
 
+  Future<void> createDue({
+    required String estateId,
+    required String name,
+    required double amount,
+    String? description,
+    String type = 'one_time',
+  }) async {
+    await _client.from('dues').insert({
+      'estate_id': estateId,
+      'name': name,
+      'amount': amount,
+      'description': description,
+      'type': type,
+      'is_active': true,
+    });
+  }
+
   Future<Map<String, dynamic>> getCollectionStats(String estateId) async {
     final totalCollected = await getTotalCollected(estateId);
     final outstanding = await getOutstanding(estateId);

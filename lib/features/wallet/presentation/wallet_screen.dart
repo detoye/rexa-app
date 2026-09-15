@@ -313,10 +313,11 @@ class _WalletScreenState extends State<WalletScreen> {
                       final messenger = ScaffoldMessenger.of(context);
 
                       // Initialize Paystack transaction
-                      final reference = PaystackService.initializeTransaction(
+                      final txResult = await PaystackService.initializeTransaction(
                         email: emailController.text,
                         amount: amount,
                       );
+                      final reference = txResult['reference'] as String;
 
                       // In production: open Paystack checkout WebView
                       // For now, simulate successful payment

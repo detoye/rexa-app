@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show UserAttributes;
 import '../../../config/supabase_client.dart';
 import '../../../config/theme.dart';
 import '../../../core/utils/role_helper.dart';
@@ -129,7 +130,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _buildSection(
               'Account',
               [
-                _buildMenuItem(context, Icons.person_outline, 'Personal Information', () {}),
+                _buildMenuItem(context, Icons.person_outline, 'Personal Information', () => _showEditProfileSheet(context)),
                 if (_isAdmin)
                   _buildMenuItem(context, Icons.vpn_key_outlined, 'Manage Invitations', () {
                     context.push('/manage-invitations');
@@ -137,7 +138,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _buildMenuItem(context, Icons.account_balance_wallet_outlined, 'Wallet', () {
                   context.go('/wallet');
                 }),
-                _buildMenuItem(context, Icons.payment, 'Payment History', () {}),
+                _buildMenuItem(context, Icons.payment, 'Payment History', () => context.go('/wallet')),
                 _buildMenuItem(context, Icons.workspace_premium_outlined, 'Subscription', () {
                   context.go('/subscription');
                 }),
@@ -150,8 +151,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _buildMenuItem(context, Icons.notifications_outlined, 'Notifications', () {
                   context.go('/notifications');
                 }),
-                _buildMenuItem(context, Icons.settings_outlined, 'Settings', () {}),
-                _buildMenuItem(context, Icons.help_outline, 'Help & Support', () {}),
+                _buildMenuItem(context, Icons.settings_outlined, 'Settings', () {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Settings coming soon')));
+                }),
+                _buildMenuItem(context, Icons.help_outline, 'Help & Support', () {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Help & Support coming soon')));
+                }),
               ],
             ),
             const SizedBox(height: 24),
@@ -211,6 +216,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
       trailing: const Icon(Icons.chevron_right, color: RezaColors.textGray, size: 20),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+    );
+  }
+
+  void _showEditProfileSheet(BuildContext context) {
+    final user = SupabaseConfig.auth.currentUser;
+    final nameController = TextEditingController(text: _getDisplayName());
+    final phoneController = TextEditingController(text: user?.phone ?? '');
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: RezaColors.cardDark,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(left: 24, right: 24, top: 24, bottom: MediaQuery.of(context).viewInsets.bottom + 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Edit Profile', style: TextStyle(color: RezaColors.textWhite, fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 20),
+              TextField(controller: nameController, decoration: const InputDecoration(hintText: 'Full Name', prefixIcon: Icon(Icons.person_outlined))),
+              const SizedBox(height: 12),
+              TextField(controller: phoneController, keyboardType: TextInputType.phone, decoration: const InputDecoration(hintText: 'Phone', prefixIcon: Icon(Icons.phone_outlined))),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    final navigator = Navigator.of(context);
+                    final messenger = ScaffoldMessenger.of(context);
+                    try {
+                      await SupabaseConfig.auth.updateUser(
+                        UserAttributes(
+                          data: {'full_name': nameController.text.trim()},
+                          phone: phoneController.text.trim().isEmpty ? null : phoneController.text.trim(),
+                        ),
+                      );
+                      navigator.pop();
+                      _loadProfileData();
+                      messenger.showSnackBar(const SnackBar(content: Text('Profile updated')));
+                    } catch (e) {
+                      messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
+                    }
+                  },
+                  child: const Text('Save Changes'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

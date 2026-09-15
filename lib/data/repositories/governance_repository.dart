@@ -93,4 +93,21 @@ class GovernanceRepository {
 
     return Meeting.fromJson(data);
   }
+
+  Future<void> createProject({
+    required String estateId,
+    required String name,
+    String? description,
+    double? budget,
+  }) async {
+    await _client.from('projects').insert({
+      'estate_id': estateId,
+      'name': name,
+      'description': description,
+      'budget': budget,
+      'spent': 0,
+      'progress_percent': 0,
+      'status': 'active',
+    });
+  }
 }

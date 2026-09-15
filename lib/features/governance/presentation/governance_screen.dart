@@ -99,7 +99,7 @@ class _GovernanceScreenState extends State<GovernanceScreen> {
                     else
                       ..._meetings.map((m) => _buildMeetingCard(m)),
                     const SizedBox(height: 24),
-                    _sectionHeader('Ongoing Projects', '+ Add', null),
+                    _sectionHeader('Ongoing Projects', '+ Add', _isAdmin ? () => _showAddProjectSheet(context) : null),
                     const SizedBox(height: 12),
                     if (_projects.isEmpty)
                       _buildEmptyState('No projects yet')
@@ -370,6 +370,63 @@ class _GovernanceScreenState extends State<GovernanceScreen> {
               ),
             );
           },
+        );
+      },
+    );
+  }
+
+  void _showAddProjectSheet(BuildContext context) {
+    final nameController = TextEditingController();
+    final descController = TextEditingController();
+    final budgetController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: RezaColors.cardDark,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(left: 24, right: 24, top: 24, bottom: MediaQuery.of(context).viewInsets.bottom + 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('New Project', style: TextStyle(color: RezaColors.textWhite, fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 20),
+              TextField(controller: nameController, decoration: const InputDecoration(hintText: 'Project Name', prefixIcon: Icon(Icons.work_outline))),
+              const SizedBox(height: 12),
+              TextField(controller: descController, decoration: const InputDecoration(hintText: 'Description (optional)', prefixIcon: Icon(Icons.description))),
+              const SizedBox(height: 12),
+              TextField(controller: budgetController, keyboardType: TextInputType.number, decoration: const InputDecoration(hintText: 'Budget (₦) (optional)', prefixIcon: Icon(Icons.money))),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (_estateId != null && nameController.text.isNotEmpty) {
+                      final navigator = Navigator.of(context);
+                      final messenger = ScaffoldMessenger.of(context);
+                      try {
+                        await _governanceRepo.createProject(
+                          estateId: _estateId!,
+                          name: nameController.text,
+                          description: descController.text.isNotEmpty ? descController.text : null,
+                          budget: double.tryParse(budgetController.text),
+                        );
+                        navigator.pop();
+                        _loadGovernanceData();
+                        messenger.showSnackBar(const SnackBar(content: Text('Project created')));
+                      } catch (e) {
+                        messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
+                      }
+                    }
+                  },
+                  child: const Text('Create Project'),
+                ),
+              ),
+            ],
+          ),
         );
       },
     );

@@ -241,6 +241,29 @@ class _SecurityScreenState extends State<SecurityScreen> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(_formatTime(guest.checkInTime), style: Theme.of(context).bodyMedium?.copyWith(fontSize: 12)),
+              if (isCheckedIn && _canManage)
+                IconButton(
+                  icon: const Icon(Icons.logout, size: 18),
+                  color: RezaColors.errorRed,
+                  tooltip: 'Check Out',
+                  onPressed: () async {
+                    try {
+                      await _securityRepo.checkOutGuest(guest.id);
+                      _loadSecurityData();
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('${guest.visitorName} checked out')),
+                        );
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Failed: $e')),
+                        );
+                      }
+                    }
+                  },
+                ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
