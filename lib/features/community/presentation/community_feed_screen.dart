@@ -109,18 +109,8 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
                   ),
                   Expanded(
                     child: _posts.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.forum_outlined, size: 64, color: RezaColors.textGray.withValues(alpha: 0.3)),
-                                const SizedBox(height: 16),
-                                Text('No posts yet', style: TextStyle(color: RezaColors.textGray, fontSize: 16)),
-                                const SizedBox(height: 8),
-                                Text('Be the first to post something', style: TextStyle(color: RezaColors.textGray.withValues(alpha: 0.6), fontSize: 13)),
-                              ],
-                            ),
-                          )
+                        ? _buildEmptyState(Icons.forum, 'No posts yet')
+
                         : ListView.builder(
                             padding: const EdgeInsets.all(16),
                             itemCount: _posts.length,
@@ -130,6 +120,25 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _buildEmptyState(IconData icon, String message) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: RezaColors.cardDark,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Center(
+        child: Column(
+          children: [
+            Icon(icon, color: RezaColors.textGray, size: 40),
+            const SizedBox(height: 12),
+            Text(message, style: const TextStyle(color: RezaColors.textGray)),
+          ],
+        ),
+      ),
     );
   }
 

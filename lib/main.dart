@@ -25,6 +25,7 @@ import 'features/subscription/presentation/subscription_screen.dart';
 import 'features/notifications/presentation/notifications_screen.dart';
 import 'features/profile/presentation/profile_screen.dart';
 import 'features/admin/presentation/manage_invitations_screen.dart';
+import 'features/shell/presentation/mobile_shell.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -208,19 +209,24 @@ final _webRouter = GoRouter(
     GoRoute(path: '/role-selection', builder: (_, _) => const RoleSelectionScreen()),
     GoRoute(path: '/create-estate', builder: (_, _) => const CreateEstateScreen()),
     GoRoute(path: '/join', builder: (_, _) => const JoinEstateScreen()),
-    GoRoute(path: '/dashboard', builder: (_, _) => const DashboardScreen()),
+    StatefulShellRoute.indexedStack(
+      builder: (context, state, navigationShell) => MobileShell(navigationShell: navigationShell),
+      branches: [
+        StatefulShellBranch(routes: [GoRoute(path: '/dashboard', builder: (_, _) => const DashboardScreen())]),
+        StatefulShellBranch(routes: [GoRoute(path: '/community', builder: (_, _) => const CommunityFeedScreen())]),
+        StatefulShellBranch(routes: [GoRoute(path: '/wallet', builder: (_, _) => const WalletScreen())]),
+        StatefulShellBranch(routes: [GoRoute(path: '/security', builder: (_, _) => const SecurityScreen())]),
+        StatefulShellBranch(routes: [GoRoute(path: '/profile', builder: (_, _) => const ProfileScreen())]),
+      ],
+    ),
     GoRoute(path: '/members', builder: (_, _) => const MembersScreen()),
     GoRoute(path: '/finances', builder: (_, _) => const FinancesScreen()),
     GoRoute(path: '/governance', builder: (_, _) => const GovernanceScreen()),
     GoRoute(path: '/property', builder: (_, _) => const PropertyScreen()),
-    GoRoute(path: '/security', builder: (_, _) => const SecurityScreen()),
     GoRoute(path: '/communications', builder: (_, _) => const CommunicationsScreen()),
-    GoRoute(path: '/community', builder: (_, _) => const CommunityFeedScreen()),
     GoRoute(path: '/business', builder: (_, _) => const BusinessAdsScreen()),
-    GoRoute(path: '/wallet', builder: (_, _) => const WalletScreen()),
     GoRoute(path: '/subscription', builder: (_, _) => const SubscriptionScreen()),
     GoRoute(path: '/notifications', builder: (_, _) => const NotificationsScreen()),
-    GoRoute(path: '/profile', builder: (_, _) => const ProfileScreen()),
     GoRoute(path: '/manage-invitations', builder: (_, _) => const ManageInvitationsScreen()),
   ],
 );

@@ -88,21 +88,21 @@ class _GovernanceScreenState extends State<GovernanceScreen> {
                     _sectionHeader('Committees', '+ Add', _isAdmin ? () => _showAddCommitteeSheet(context) : null),
                     const SizedBox(height: 12),
                     if (_committees.isEmpty)
-                      _buildEmptyState('No committees yet')
+                      _buildEmptyState(Icons.gavel, 'No committees yet')
                     else
                       ..._committees.map((c) => _buildCommitteeCard(c)),
                     const SizedBox(height: 24),
                     _sectionHeader('Meeting Minutes', '+ New', _isAdmin ? () => _showAddMeetingSheet(context) : null),
                     const SizedBox(height: 12),
                     if (_meetings.isEmpty)
-                      _buildEmptyState('No meetings recorded')
+                      _buildEmptyState(Icons.gavel, 'No meetings recorded')
                     else
                       ..._meetings.map((m) => _buildMeetingCard(m)),
                     const SizedBox(height: 24),
                     _sectionHeader('Ongoing Projects', '+ Add', _isAdmin ? () => _showAddProjectSheet(context) : null),
                     const SizedBox(height: 12),
                     if (_projects.isEmpty)
-                      _buildEmptyState('No projects yet')
+                      _buildEmptyState(Icons.gavel, 'No projects yet')
                     else
                       ..._projects.map((p) => _buildProjectCard(p)),
                   ],
@@ -123,7 +123,7 @@ class _GovernanceScreenState extends State<GovernanceScreen> {
     );
   }
 
-  Widget _buildEmptyState(String message) {
+  Widget _buildEmptyState(IconData icon, String message) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -131,7 +131,13 @@ class _GovernanceScreenState extends State<GovernanceScreen> {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Center(
-        child: Text(message, style: const TextStyle(color: RezaColors.textGray)),
+        child: Column(
+          children: [
+            Icon(icon, color: RezaColors.textGray, size: 40),
+            const SizedBox(height: 12),
+            Text(message, style: const TextStyle(color: RezaColors.textGray)),
+          ],
+        ),
       ),
     );
   }

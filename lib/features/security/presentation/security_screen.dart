@@ -21,6 +21,13 @@ class _SecurityScreenState extends State<SecurityScreen> {
   bool _isLoading = true;
   String? _estateId;
   bool _canManage = false;
+  final _verifyCodeController = TextEditingController();
+
+  @override
+  void dispose() {
+    _verifyCodeController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -91,6 +98,55 @@ class _SecurityScreenState extends State<SecurityScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Visitor Code Verification (for security/admin)
+                    if (_canManage) ...[
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: RezaColors.cardDark,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: RezaColors.accentGold.withValues(alpha: 0.3)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.qr_code_scanner, color: RezaColors.accentGold),
+                                SizedBox(width: 8),
+                                Text('Verify Visitor Code', style: TextStyle(color: RezaColors.textWhite, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: _verifyCodeController,
+                                    textCapitalization: TextCapitalization.characters,
+                                    decoration: const InputDecoration(
+                                      hintText: 'Enter 6-digit code',
+                                      prefixIcon: Icon(Icons.vpn_key),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                ElevatedButton(
+                                  onPressed: () => _verifyVisitorCode(context),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: RezaColors.accentGold,
+                                    foregroundColor: RezaColors.primaryNavy,
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                                  ),
+                                  child: const Text('Verify'),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                     GestureDetector(
                       onTap: () => _sendPanicAlert(),
                       child: Container(
@@ -595,6 +651,85 @@ class _SecurityScreenState extends State<SecurityScreen> {
           ),
         );
       },
+    );
+  }
+
+  void _verifyVisitorCode(BuildContext context) async {
+    final code = _verifyCodeController.text.trim();
+    if (code.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a visitor code')),
+      );
+      return;
+    }
+
+    try {
+      final visitorCode = await _visitorCodeRepo.verifyVisitorCode(code);
+      
+      if (!mounted) return;
+      
+      // Show verification result
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: RezaColors.cardDark,
+          title: Row(
+            children: [
+              Icon(Icons.check_circle, color: RezaColors.successGreen),
+              const SizedBox(width: 8),
+              const Text('Valid Code'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildVerifyRow('Visitor', visitorCode['visitor_name'] ?? 'Unknown'),
+              _buildVerifyRow('Phone', visitorCode['visitor_phone'] ?? 'N/A'),
+              _buildVerifyRow('Purpose', visitorCode['purpose'] ?? 'N/A'),
+              _buildVerifyRow('Code', visitorCode['code']),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                await _visitorCodeRepo.markCodeAsUsed(visitorCode['id']);
+                if (ctx.mounted) Navigator.pop(ctx);
+                _verifyCodeController.clear();
+                _loadSecurityData();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Guest checked in successfully')),
+                  );
+                }
+              },
+              child: const Text('Check In Guest'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+    }
+  }
+
+  Widget _buildVerifyRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: RezaColors.textGray)),
+          Text(value, style: const TextStyle(color: RezaColors.textWhite, fontWeight: FontWeight.w500)),
+        ],
+      ),
     );
   }
 }

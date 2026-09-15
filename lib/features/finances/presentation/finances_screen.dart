@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../../../config/supabase_client.dart';
 import '../../../config/theme.dart';
 import '../../../core/utils/role_helper.dart';
 import '../../../core/widgets/stat_card.dart';
@@ -21,6 +23,8 @@ class _FinancesScreenState extends State<FinancesScreen> {
   double _monthlyRevenue = 0;
   List<Map<String, dynamic>> _dues = [];
   List<Map<String, dynamic>> _recentPayments = [];
+  List<Map<String, dynamic>> _myPayments = [];
+  double _myOutstanding = 0;
   bool _isLoading = true;
   String? _estateId;
   bool _isAdmin = false;
@@ -48,6 +52,40 @@ class _FinancesScreenState extends State<FinancesScreen> {
           _recentPayments = payments;
           _isLoading = false;
         });
+
+        // Load tenant-specific data
+        if (!_isAdmin) {
+          final user = SupabaseConfig.auth.currentUser;
+          if (user != null && _estateId != null) {
+            final memberData = await SupabaseConfig.client
+                .from('members')
+                .select('id')
+                .eq('user_id', user.id)
+                .eq('estate_id', _estateId!)
+                .limit(1)
+                .maybeSingle();
+            
+            if (memberData != null) {
+              final payments = await SupabaseConfig.client
+                  .from('payments')
+                  .select('id, amount, status, payment_method, created_at, due_id, dues(name)')
+                  .eq('member_id', memberData['id'])
+                  .order('created_at', ascending: false)
+                  .limit(20);
+              
+              final unpaidInvoices = await SupabaseConfig.client
+                  .from('invoices')
+                  .select('id, amount, due_id, dues(name), due_date')
+                  .eq('member_id', memberData['id'])
+                  .eq('is_paid', false);
+              
+              setState(() {
+                _myPayments = payments;
+                _myOutstanding = unpaidInvoices.fold<double>(0, (sum, i) => sum + (i['amount'] as num).toDouble());
+              });
+            }
+          }
+        }
       } else {
         setState(() => _isLoading = false);
       }
@@ -104,52 +142,111 @@ class _FinancesScreenState extends State<FinancesScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: StatCard(
-                            title: 'Total Collected',
-                            value: _formatAmount(_totalCollected),
-                            icon: Icons.trending_up,
-                            iconColor: RezaColors.successGreen,
+                    // Stats cards - admin sees estate-wide, tenant sees personal
+                    if (_isAdmin) ...[
+                      Row(
+                        children: [
+                          Expanded(
+                            child: StatCard(
+                              title: 'Total Collected',
+                              value: _formatAmount(_totalCollected),
+                              icon: Icons.trending_up,
+                              iconColor: RezaColors.successGreen,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: StatCard(
-                            title: 'Outstanding',
-                            value: _formatAmount(_outstanding),
-                            icon: Icons.trending_down,
-                            iconColor: RezaColors.errorRed,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: StatCard(
+                              title: 'Outstanding',
+                              value: _formatAmount(_outstanding),
+                              icon: Icons.trending_down,
+                              iconColor: RezaColors.errorRed,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: StatCard(
-                            title: 'This Month',
-                            value: _formatAmount(_monthlyRevenue),
-                            icon: Icons.calendar_today,
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: StatCard(
+                              title: 'This Month',
+                              value: _formatAmount(_monthlyRevenue),
+                              icon: Icons.calendar_today,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: StatCard(
-                            title: 'Due Types',
-                            value: '${_dues.length}',
-                            icon: Icons.receipt_long,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: StatCard(
+                              title: 'Due Types',
+                              value: '${_dues.length}',
+                              icon: Icons.receipt_long,
+                            ),
                           ),
+                        ],
+                      ),
+                    ] else ...[
+                      // Tenant: personal balance card
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [RezaColors.primaryNavy, Color(0xFF2A3A5A)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                      ],
-                    ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('My Outstanding', style: TextStyle(color: RezaColors.textGray)),
+                                if (_myOutstanding > 0)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: RezaColors.errorRed.withValues(alpha: 0.2),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text('₦${_formatAmount(_myOutstanding)}', style: const TextStyle(color: RezaColors.errorRed, fontSize: 12)),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _myOutstanding > 0 ? '₦${_formatAmount(_myOutstanding)}' : 'All clear!',
+                              style: Theme.of(context).headlineMedium?.copyWith(
+                                color: _myOutstanding > 0 ? RezaColors.errorRed : RezaColors.successGreen,
+                              ),
+                            ),
+                            if (_myOutstanding > 0) ...[
+                              const SizedBox(height: 8),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  onPressed: () => context.go('/wallet'),
+                                  icon: const Icon(Icons.payment, size: 18),
+                                  label: const Text('Pay Now'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: RezaColors.accentGold,
+                                    foregroundColor: RezaColors.primaryNavy,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Due Types', style: Theme.of(context).headlineMedium),
+                        Text(_isAdmin ? 'Due Types' : 'My Dues', style: Theme.of(context).headlineMedium),
                         if (_isAdmin)
                           TextButton(
                             onPressed: () => _showAddDueDialog(context),
@@ -176,9 +273,9 @@ class _FinancesScreenState extends State<FinancesScreen> {
                             due['is_active'] == true,
                           )),
                     const SizedBox(height: 24),
-                    Text('Recent Payments', style: Theme.of(context).headlineMedium),
+                    Text(_isAdmin ? 'Recent Payments' : 'My Payment History', style: Theme.of(context).headlineMedium),
                     const SizedBox(height: 12),
-                    if (_recentPayments.isEmpty)
+                    if (_isAdmin ? _recentPayments.isEmpty : _myPayments.isEmpty)
                       Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
@@ -189,13 +286,41 @@ class _FinancesScreenState extends State<FinancesScreen> {
                           child: Text('No payments yet', style: TextStyle(color: RezaColors.textGray)),
                         ),
                       )
-                    else
+                    else if (_isAdmin)
                       ..._recentPayments.map((payment) => _buildPaymentItem(
                             payment['member_id']?.substring(0, 8) ?? 'User',
                             _formatAmount((payment['amount'] as num).toDouble()),
                             payment['status'] == 'success',
                             _formatDate(payment['created_at']),
-                          )),
+                          ))
+                    else
+                      ..._myPayments.map((payment) {
+                        final dueName = (payment['dues'] as Map<String, dynamic>?)?['name'] ?? 'Due';
+                        return _buildPaymentItem(
+                          dueName,
+                          _formatAmount((payment['amount'] as num).toDouble()),
+                          payment['status'] == 'success',
+                          _formatDate(payment['created_at']),
+                        );
+                      }),
+                    // Tenant: Pay outstanding button
+                    if (!_isAdmin && _myOutstanding > 0) ...[
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () => context.go('/wallet'),
+                          icon: const Icon(Icons.payment, size: 18),
+                          label: Text('Pay Outstanding — ₦${_formatAmount(_myOutstanding)}'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: RezaColors.accentGold,
+                            foregroundColor: RezaColors.primaryNavy,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

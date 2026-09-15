@@ -47,6 +47,7 @@ class Member {
   final String? street;
   final bool isVerified;
   final DateTime createdAt;
+  final String? fullName;
 
   Member({
     required this.id,
@@ -57,9 +58,11 @@ class Member {
     this.street,
     required this.isVerified,
     required this.createdAt,
+    this.fullName,
   });
 
   factory Member.fromJson(Map<String, dynamic> json) {
+    final userData = json['users'];
     return Member(
       id: json['id'],
       userId: json['user_id'],
@@ -69,6 +72,7 @@ class Member {
       street: json['street'],
       isVerified: json['is_verified'],
       createdAt: DateTime.parse(json['created_at']),
+      fullName: userData != null ? userData['full_name'] as String? : null,
     );
   }
 }

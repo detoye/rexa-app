@@ -68,24 +68,8 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
               child: CircularProgressIndicator(color: RezaColors.accentGold),
             )
           : _announcements.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.campaign_outlined, size: 64, color: RezaColors.textGray.withValues(alpha: 0.3)),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No announcements yet',
-                        style: TextStyle(color: RezaColors.textGray, fontSize: 16),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Create an announcement to get started',
-                        style: TextStyle(color: RezaColors.textGray.withValues(alpha: 0.6), fontSize: 13),
-                      ),
-                    ],
-                  ),
-                )
+              ? _buildEmptyState(Icons.campaign, 'No announcements yet')
+
               : RefreshIndicator(
                   onRefresh: _loadAnnouncements,
                   child: ListView.builder(
@@ -174,6 +158,25 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
     if (diff.inHours > 0) return '${diff.inHours}h ago';
     if (diff.inMinutes > 0) return '${diff.inMinutes}m ago';
     return 'Just now';
+  }
+
+  Widget _buildEmptyState(IconData icon, String message) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: RezaColors.cardDark,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Center(
+        child: Column(
+          children: [
+            Icon(icon, color: RezaColors.textGray, size: 40),
+            const SizedBox(height: 12),
+            Text(message, style: const TextStyle(color: RezaColors.textGray)),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showCreateAnnouncementSheet(BuildContext context) {

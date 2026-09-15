@@ -103,16 +103,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     _notifications = snapshot.data!;
                   }
                   if (_notifications.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.notifications_none, size: 64, color: RezaColors.textGray.withValues(alpha: 0.3)),
-                          const SizedBox(height: 16),
-                          Text('No notifications', style: TextStyle(color: RezaColors.textGray, fontSize: 16)),
-                        ],
-                      ),
-                    );
+                    return _buildEmptyState(Icons.notifications, 'No notifications');
                   }
                   return ListView.builder(
                     padding: const EdgeInsets.all(16),
@@ -122,6 +113,25 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 },
               ),
             ),
+    );
+  }
+
+  Widget _buildEmptyState(IconData icon, String message) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: RezaColors.cardDark,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Center(
+        child: Column(
+          children: [
+            Icon(icon, color: RezaColors.textGray, size: 40),
+            const SizedBox(height: 12),
+            Text(message, style: const TextStyle(color: RezaColors.textGray)),
+          ],
+        ),
+      ),
     );
   }
 

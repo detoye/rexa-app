@@ -36,7 +36,7 @@ class MemberRepository {
   Future<List<Member>> getMembersByEstate(String estateId) async {
     final data = await _client
         .from('members')
-        .select()
+        .select('*, users!user_id(full_name)')
         .eq('estate_id', estateId)
         .order('created_at', ascending: false);
 
@@ -46,9 +46,9 @@ class MemberRepository {
   Future<List<Member>> searchMembers(String estateId, String query) async {
     final data = await _client
         .from('members')
-        .select()
+        .select('*, users!user_id(full_name)')
         .eq('estate_id', estateId)
-        .or('role.ilike.%$query%,house_number.ilike.%$query%,street.ilike.%$query%')
+        .or('role.ilike.%$query%,house_number.ilike.%$query%,street.ilike.%$query%,users.full_name.ilike.%$query%')
         .order('created_at', ascending: false);
 
     return data.map((m) => Member.fromJson(m)).toList();

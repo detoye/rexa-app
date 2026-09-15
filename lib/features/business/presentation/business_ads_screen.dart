@@ -72,24 +72,33 @@ class _BusinessAdsScreenState extends State<BusinessAdsScreen> {
           : RefreshIndicator(
               onRefresh: _loadAds,
               child: _ads.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.store_outlined, size: 64, color: RezaColors.textGray.withValues(alpha: 0.3)),
-                          const SizedBox(height: 16),
-                          Text('No businesses yet', style: TextStyle(color: RezaColors.textGray, fontSize: 16)),
-                          const SizedBox(height: 8),
-                          Text('Post your business to the community', style: TextStyle(color: RezaColors.textGray.withValues(alpha: 0.6), fontSize: 13)),
-                        ],
-                      ),
-                    )
+                  ? _buildEmptyState(Icons.business, 'No businesses yet')
+
                   : ListView.builder(
                       padding: const EdgeInsets.all(16),
                       itemCount: _ads.length,
                       itemBuilder: (context, index) => _buildAdCard(_ads[index]),
                     ),
             ),
+    );
+  }
+
+  Widget _buildEmptyState(IconData icon, String message) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: RezaColors.cardDark,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Center(
+        child: Column(
+          children: [
+            Icon(icon, color: RezaColors.textGray, size: 40),
+            const SizedBox(height: 12),
+            Text(message, style: const TextStyle(color: RezaColors.textGray)),
+          ],
+        ),
+      ),
     );
   }
 

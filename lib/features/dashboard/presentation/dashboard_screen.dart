@@ -30,6 +30,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String _userName = 'User';
   bool _isAdmin = false;
   bool _hasEstate = false;
+  double _myBalance = 0;
+  int _myUnpaidInvoices = 0;
 
   @override
   void initState() {
@@ -67,6 +69,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _announcementCount = (results[3] as List).length;
           _isLoading = false;
         });
+
+        // Load tenant-specific data
+        if (!_isAdmin && _estateId != null) {
+          final tenantUser = SupabaseConfig.auth.currentUser;
+          if (tenantUser != null) {
+            // Get user's member ID
+            final memberData = await SupabaseConfig.client
+                .from('members')
+                .select('id')
+                .eq('user_id', tenantUser.id)
+                .eq('estate_id', _estateId!)
+                .limit(1)
+                .maybeSingle();
+
+            if (memberData != null) {
+              // Get unpaid invoices for this member
+              final invoices = await SupabaseConfig.client
+                  .from('invoices')
+                  .select('amount')
+                  .eq('member_id', memberData['id'])
+                  .eq('is_paid', false);
+
+              setState(() {
+                _myUnpaidInvoices = invoices.length;
+                _myBalance = invoices.fold<double>(
+                    0, (sum, i) => sum + (i['amount'] as num).toDouble());
+              });
+            }
+          }
+        }
       } else {
         setState(() => _isLoading = false);
       }
@@ -221,6 +253,55 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ),
                           ],
                         ),
+
+                        // Tenant announcements preview
+                        if (!_isAdmin) ...[
+                          const SizedBox(height: 24),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('Recent Announcements', style: Theme.of(context).headlineMedium),
+                              TextButton(
+                                onPressed: () => context.go('/communications'),
+                                child: const Text('View All'),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          if (_announcementCount == 0)
+                            Container(
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: RezaColors.cardDark,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Center(
+                                child: Text('No announcements yet', style: TextStyle(color: RezaColors.textGray)),
+                              ),
+                            )
+                          else
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: RezaColors.cardDark,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.campaign_outlined, color: RezaColors.accentGold, size: 24),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      '$_announcementCount new announcement${_announcementCount == 1 ? '' : 's'}',
+                                      style: const TextStyle(color: RezaColors.textWhite),
+                                    ),
+                                  ),
+                                  Icon(Icons.chevron_right, color: RezaColors.textGray),
+                                ],
+                              ),
+                            ),
+                        ],
+
                         if (_isAdmin) ...[
                           const SizedBox(height: 24),
                           Row(
@@ -300,49 +381,103 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildStatsCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [RezaColors.primaryNavy, Color(0xFF2A3A5A)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    if (_isAdmin) {
+      // Admin sees estate-wide collection stats
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [RezaColors.primaryNavy, Color(0xFF2A3A5A)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
         ),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Total Dues Collected',
-                style: TextStyle(color: RezaColors.textGray),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Total Dues Collected', style: TextStyle(color: RezaColors.textGray)),
+                const SizedBox(height: 4),
+                Text(
+                  '₦${_formatAmount(_totalCollected)}',
+                  style: Theme.of(context).headlineMedium?.copyWith(color: RezaColors.accentGold),
+                ),
+              ],
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: RezaColors.successGreen.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(20),
               ),
-              const SizedBox(height: 4),
-              Text(
-                '₦${_formatAmount(_totalCollected)}',
-                style: Theme.of(context).headlineMedium?.copyWith(
-                  color: RezaColors.accentGold,
+              child: const Text('Active', style: TextStyle(color: RezaColors.successGreen)),
+            ),
+          ],
+        ),
+      );
+    } else {
+      // Tenant sees their personal balance
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [RezaColors.primaryNavy, Color(0xFF2A3A5A)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('My Balance', style: TextStyle(color: RezaColors.textGray)),
+                if (_myUnpaidInvoices > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: RezaColors.errorRed.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '$_myUnpaidInvoices unpaid',
+                      style: const TextStyle(color: RezaColors.errorRed, fontSize: 12),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _myBalance > 0 ? '₦${_formatAmount(_myBalance)}' : 'All clear!',
+              style: Theme.of(context).headlineMedium?.copyWith(
+                color: _myBalance > 0 ? RezaColors.errorRed : RezaColors.successGreen,
+              ),
+            ),
+            if (_myBalance > 0) ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => context.go('/wallet'),
+                  icon: const Icon(Icons.payment, size: 18),
+                  label: const Text('Pay Now'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: RezaColors.accentGold,
+                    foregroundColor: RezaColors.primaryNavy,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
                 ),
               ),
             ],
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: RezaColors.successGreen.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Text(
-              'Active',
-              style: TextStyle(color: RezaColors.successGreen),
-            ),
-          ),
-        ],
-      ),
-    );
+          ],
+        ),
+      );
+    }
   }
 
   Widget _buildOverviewCard(IconData icon, String label, String value, Color color) {
